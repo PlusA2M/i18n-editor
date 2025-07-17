@@ -1,0 +1,14 @@
+# Xcode user data
+*.xcuserdata/
+*.xcuserdatad/
+xcuserdata/
+
+# Build artifacts
+build/
+DerivedData/
+
+# Personal development files
+*.orig
+*.rej
+*~
+.DS_Store

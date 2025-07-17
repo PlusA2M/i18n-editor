@@ -1,0 +1,583 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		378B51C92E23DDAA0082AD6A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 378B51AD2E23DDA70082AD6A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 378B51B42E23DDA70082AD6A;
+			remoteInfo = "i18n editor";
+		};
+		378B51D32E23DDAA0082AD6A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 378B51AD2E23DDA70082AD6A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 378B51B42E23DDA70082AD6A;
+			remoteInfo = "i18n editor";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		378B51B52E23DDA70082AD6A /* i18n editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "i18n editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		378B51C82E23DDAA0082AD6A /* i18n editorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "i18n editorTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		378B51D22E23DDAA0082AD6A /* i18n editorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "i18n editorUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		373EE09B2E295D1700EE5D0E /* Exceptions for "i18n editor" folder in "i18n editor" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Tests/PermissionManagerTests.swift,
+			);
+			target = 378B51B42E23DDA70082AD6A /* i18n editor */;
+		};
+		373EE09C2E295D1700EE5D0E /* Exceptions for "i18n editor" folder in "i18n editorTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Tests/PermissionManagerTests.swift,
+			);
+			target = 378B51C72E23DDAA0082AD6A /* i18n editorTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		378B51B72E23DDA70082AD6A /* i18n editor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				373EE09B2E295D1700EE5D0E /* Exceptions for "i18n editor" folder in "i18n editor" target */,
+				373EE09C2E295D1700EE5D0E /* Exceptions for "i18n editor" folder in "i18n editorTests" target */,
+			);
+			path = "i18n editor";
+			sourceTree = "<group>";
+		};
+		378B51CB2E23DDAA0082AD6A /* i18n editorTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "i18n editorTests";
+			sourceTree = "<group>";
+		};
+		378B51D52E23DDAA0082AD6A /* i18n editorUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "i18n editorUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		378B51B22E23DDA70082AD6A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		378B51C52E23DDAA0082AD6A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		378B51CF2E23DDAA0082AD6A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		378B51AC2E23DDA70082AD6A = {
+			isa = PBXGroup;
+			children = (
+				378B51B72E23DDA70082AD6A /* i18n editor */,
+				378B51CB2E23DDAA0082AD6A /* i18n editorTests */,
+				378B51D52E23DDAA0082AD6A /* i18n editorUITests */,
+				378B51B62E23DDA70082AD6A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		378B51B62E23DDA70082AD6A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				378B51B52E23DDA70082AD6A /* i18n editor.app */,
+				378B51C82E23DDAA0082AD6A /* i18n editorTests.xctest */,
+				378B51D22E23DDAA0082AD6A /* i18n editorUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		378B51B42E23DDA70082AD6A /* i18n editor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 378B51DC2E23DDAA0082AD6A /* Build configuration list for PBXNativeTarget "i18n editor" */;
+			buildPhases = (
+				378B51B12E23DDA70082AD6A /* Sources */,
+				378B51B22E23DDA70082AD6A /* Frameworks */,
+				378B51B32E23DDA70082AD6A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				378B51B72E23DDA70082AD6A /* i18n editor */,
+			);
+			name = "i18n editor";
+			packageProductDependencies = (
+			);
+			productName = "i18n editor";
+			productReference = 378B51B52E23DDA70082AD6A /* i18n editor.app */;
+			productType = "com.apple.product-type.application";
+		};
+		378B51C72E23DDAA0082AD6A /* i18n editorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 378B51DF2E23DDAA0082AD6A /* Build configuration list for PBXNativeTarget "i18n editorTests" */;
+			buildPhases = (
+				378B51C42E23DDAA0082AD6A /* Sources */,
+				378B51C52E23DDAA0082AD6A /* Frameworks */,
+				378B51C62E23DDAA0082AD6A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				378B51CA2E23DDAA0082AD6A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				378B51CB2E23DDAA0082AD6A /* i18n editorTests */,
+			);
+			name = "i18n editorTests";
+			packageProductDependencies = (
+			);
+			productName = "i18n editorTests";
+			productReference = 378B51C82E23DDAA0082AD6A /* i18n editorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		378B51D12E23DDAA0082AD6A /* i18n editorUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 378B51E22E23DDAA0082AD6A /* Build configuration list for PBXNativeTarget "i18n editorUITests" */;
+			buildPhases = (
+				378B51CE2E23DDAA0082AD6A /* Sources */,
+				378B51CF2E23DDAA0082AD6A /* Frameworks */,
+				378B51D02E23DDAA0082AD6A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				378B51D42E23DDAA0082AD6A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				378B51D52E23DDAA0082AD6A /* i18n editorUITests */,
+			);
+			name = "i18n editorUITests";
+			packageProductDependencies = (
+			);
+			productName = "i18n editorUITests";
+			productReference = 378B51D22E23DDAA0082AD6A /* i18n editorUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		378B51AD2E23DDA70082AD6A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					378B51B42E23DDA70082AD6A = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					378B51C72E23DDAA0082AD6A = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 378B51B42E23DDA70082AD6A;
+					};
+					378B51D12E23DDAA0082AD6A = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = 378B51B42E23DDA70082AD6A;
+					};
+				};
+			};
+			buildConfigurationList = 378B51B02E23DDA70082AD6A /* Build configuration list for PBXProject "i18n editor" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 378B51AC2E23DDA70082AD6A;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 378B51B62E23DDA70082AD6A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				378B51B42E23DDA70082AD6A /* i18n editor */,
+				378B51C72E23DDAA0082AD6A /* i18n editorTests */,
+				378B51D12E23DDAA0082AD6A /* i18n editorUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		378B51B32E23DDA70082AD6A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		378B51C62E23DDAA0082AD6A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		378B51D02E23DDAA0082AD6A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		378B51B12E23DDA70082AD6A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		378B51C42E23DDAA0082AD6A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		378B51CE2E23DDAA0082AD6A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		378B51CA2E23DDAA0082AD6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 378B51B42E23DDA70082AD6A /* i18n editor */;
+			targetProxy = 378B51C92E23DDAA0082AD6A /* PBXContainerItemProxy */;
+		};
+		378B51D42E23DDAA0082AD6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 378B51B42E23DDA70082AD6A /* i18n editor */;
+			targetProxy = 378B51D32E23DDAA0082AD6A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		378B51DA2E23DDAA0082AD6A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		378B51DB2E23DDAA0082AD6A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		378B51DD2E23DDAA0082AD6A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "i18n editor/i18n_editor.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "PB i18n Editor";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "plusa.i18n-editor";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		378B51DE2E23DDAA0082AD6A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "i18n editor/i18n_editor.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "PB i18n Editor";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "plusa.i18n-editor";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		378B51E02E23DDAA0082AD6A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "plusa.i18n-editorTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/i18n editor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/i18n editor";
+			};
+			name = Debug;
+		};
+		378B51E12E23DDAA0082AD6A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "plusa.i18n-editorTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/i18n editor.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/i18n editor";
+			};
+			name = Release;
+		};
+		378B51E32E23DDAA0082AD6A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "plusa.i18n-editorUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "i18n editor";
+			};
+			name = Debug;
+		};
+		378B51E42E23DDAA0082AD6A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P296G6ZXXF;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "plusa.i18n-editorUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "i18n editor";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		378B51B02E23DDA70082AD6A /* Build configuration list for PBXProject "i18n editor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				378B51DA2E23DDAA0082AD6A /* Debug */,
+				378B51DB2E23DDAA0082AD6A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		378B51DC2E23DDAA0082AD6A /* Build configuration list for PBXNativeTarget "i18n editor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				378B51DD2E23DDAA0082AD6A /* Debug */,
+				378B51DE2E23DDAA0082AD6A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		378B51DF2E23DDAA0082AD6A /* Build configuration list for PBXNativeTarget "i18n editorTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				378B51E02E23DDAA0082AD6A /* Debug */,
+				378B51E12E23DDAA0082AD6A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		378B51E22E23DDAA0082AD6A /* Build configuration list for PBXNativeTarget "i18n editorUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				378B51E32E23DDAA0082AD6A /* Debug */,
+				378B51E42E23DDAA0082AD6A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 378B51AD2E23DDA70082AD6A /* Project object */;
+}
