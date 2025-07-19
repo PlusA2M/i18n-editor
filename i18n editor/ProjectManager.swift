@@ -280,13 +280,8 @@ class ProjectManager: ObservableObject {
         }
 
         // Save all changes
-        do {
-            try dataManager.viewContext.save()
-            print("Successfully loaded translation data into Core Data")
-        } catch {
-            print("Error saving translation data: \(error)")
-            projectLoadingError = "Failed to load translation data: \(error.localizedDescription)"
-        }
+        dataManager.saveContext()
+        print("Successfully loaded translation data into Core Data")
     }
 
     /// Flatten nested JSON keys into dot notation

@@ -1,8 +1,10 @@
 # 🌍 i18n Editor for macOS
 
+*Transform your translation workflow today - because life's too short for manual JSON editing.*
+
 > **A beautiful, native macOS app for effortless Paraglide JS internationalization management**
 
-Transform your Paraglide JS workflow with an intuitive, Apple Human Interface Guidelines-compliant editor that makes managing i18n JSON files a breeze. Optimized for SvelteKit projects using Paraglide JS from inlang.
+Transform your Paraglide JS workflow with an intuitive, native editor that makes managing i18n JSON files a breeze. Optimized for SvelteKit projects using Paraglide JS from inlang.
 
 ![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-FA7343?style=for-the-badge&logo=swift&logoColor=white)
@@ -103,8 +105,6 @@ While optimized for **Paraglide JS + SvelteKit**, this app works with any projec
 
 **Tested with:**
 - ✅ SvelteKit + Paraglide JS
-- ✅ Next.js + Paraglide JS
-- ✅ Astro + Paraglide JS
 - ✅ Any framework following inlang conventions
 
 ## 🎯 Perfect For
@@ -130,7 +130,7 @@ While optimized for **Paraglide JS + SvelteKit**, this app works with any projec
 We'd love to hear from you! This app is built for the community, by the community.
 
 ### 💡 Request Features
-Have an idea that would make your i18n workflow even better? 
+Have an idea that would make your i18n workflow even better?
 [Open an issue](../../issues/new) and tell us about it!
 
 ### 🐛 Found a Bug?
@@ -160,6 +160,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ for the Paraglide JS and SvelteKit community**
-
-*Transform your translation workflow today - because life's too short for manual JSON editing.*
+**Made with ❤️ in 🇭🇰🇲🇴🇨🇳 for the Paraglide JS and SvelteKit community**

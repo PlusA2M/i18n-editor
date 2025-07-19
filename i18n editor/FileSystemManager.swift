@@ -7,12 +7,14 @@
 
 import Foundation
 import Combine
+import os.log
 
 /// Manages file system operations including directory scanning, file watching, and file operations
 class FileSystemManager: ObservableObject {
     private let fileManager = FileManager.default
     private var fileSystemWatcher: FileSystemWatcher?
     private var cancellables = Set<AnyCancellable>()
+    private let logger = Logger(subsystem: "com.plusa.i18n-editor", category: "FileSystemManager")
 
     @Published var isScanning = false
     @Published var scanProgress: Double = 0.0
@@ -23,6 +25,7 @@ class FileSystemManager: ObservableObject {
 
     /// Recursively scan directory for Svelte files with permission handling
     func scanSvelteFiles(in projectPath: String) -> [SvelteFile] {
+        logger.info("Starting Svelte file scan in project: \(projectPath)")
         let srcPath = URL(fileURLWithPath: projectPath).appendingPathComponent("src")
 
         // Clear previous error
@@ -30,16 +33,22 @@ class FileSystemManager: ObservableObject {
 
         // Check if we can access the project directory
         guard canAccessPath(projectPath) else {
-            lastScanError = "Unable to access project directory. Please check permissions."
-            print("Permission denied for project path: \(projectPath)")
+            let errorMessage = "Unable to access project directory. Please check permissions."
+            lastScanError = errorMessage
+            logger.error("Permission denied for project path: \(projectPath)")
             return []
         }
 
+        logger.info("Project path access verified: \(projectPath)")
+
         guard fileManager.fileExists(atPath: srcPath.path) else {
-            lastScanError = "Source directory not found: \(srcPath.path)"
-            print("Source directory not found: \(srcPath.path)")
+            let errorMessage = "Source directory not found: \(srcPath.path)"
+            lastScanError = errorMessage
+            logger.error("Source directory not found: \(srcPath.path)")
             return []
         }
+
+        logger.info("Source directory found: \(srcPath.path)")
 
         isScanning = true
         scanProgress = 0.0
@@ -52,12 +61,20 @@ class FileSystemManager: ObservableObject {
         var svelteFiles: [SvelteFile] = []
 
         do {
+            logger.info("Enumerating .svelte files...")
             let allFiles = try getAllFiles(in: srcPath, withExtension: "svelte")
             let totalFiles = allFiles.count
 
+            logger.info("Found \(totalFiles) .svelte files to process")
+
             for (index, fileURL) in allFiles.enumerated() {
+                logger.debug("Processing file \(index + 1)/\(totalFiles): \(fileURL.lastPathComponent)")
+
                 if let svelteFile = processSvelteFile(at: fileURL, projectPath: projectPath) {
                     svelteFiles.append(svelteFile)
+                    logger.debug("Successfully processed: \(svelteFile.relativePath) (\(svelteFile.fileSize) bytes)")
+                } else {
+                    logger.warning("Failed to process file: \(fileURL.path)")
                 }
 
                 // Update progress
@@ -66,9 +83,12 @@ class FileSystemManager: ObservableObject {
                 }
             }
 
+            logger.info("Scan completed: \(svelteFiles.count)/\(totalFiles) files processed successfully")
+
         } catch {
-            lastScanError = "Error scanning Svelte files: \(error.localizedDescription)"
-            print("Error scanning Svelte files: \(error)")
+            let errorMessage = "Error scanning Svelte files: \(error.localizedDescription)"
+            lastScanError = errorMessage
+            logger.error("Error scanning Svelte files: \(error.localizedDescription)")
         }
 
         return svelteFiles
@@ -279,23 +299,35 @@ class FileSystemManager: ObservableObject {
 
     /// Check if we can access a specific path using security-scoped bookmarks or Full Disk Access
     private func canAccessPath(_ path: String) -> Bool {
+        logger.debug("Checking access to path: \(path)")
+
         // Try to restore security-scoped access from bookmark
-        if let bookmarkData = UserDefaults.standard.data(forKey: "bookmark_\(path)") {
+        let bookmarkKey = "bookmark_\(path)"
+        if let bookmarkData = UserDefaults.standard.data(forKey: bookmarkKey) {
+            logger.debug("Found security-scoped bookmark for path")
             do {
                 var isStale = false
                 let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
 
                 if !isStale && url.startAccessingSecurityScopedResource() {
                     defer { url.stopAccessingSecurityScopedResource() }
-                    return fileManager.isReadableFile(atPath: path)
+                    let hasAccess = fileManager.isReadableFile(atPath: path)
+                    logger.debug("Security-scoped bookmark access: \(hasAccess ? "granted" : "denied")")
+                    return hasAccess
+                } else {
+                    logger.warning("Security-scoped bookmark is stale or failed to start accessing")
                 }
             } catch {
-                print("Failed to resolve security-scoped bookmark: \(error)")
+                logger.error("Failed to resolve security-scoped bookmark: \(error.localizedDescription)")
             }
+        } else {
+            logger.debug("No security-scoped bookmark found for path")
         }
 
         // Fall back to checking direct access (works with Full Disk Access)
-        return fileManager.isReadableFile(atPath: path)
+        let hasDirectAccess = fileManager.isReadableFile(atPath: path)
+        logger.debug("Direct file access: \(hasDirectAccess ? "granted" : "denied")")
+        return hasDirectAccess
     }
 }
 

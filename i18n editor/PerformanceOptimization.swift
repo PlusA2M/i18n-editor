@@ -319,10 +319,12 @@ class PerformanceOptimizer: ObservableObject {
         }
         
         let result = try await operation()
-        
-        // Save once at the end
-        try context.save()
-        
+
+        // Save once at the end on main thread
+        await MainActor.run {
+            DataManager.shared.saveContext()
+        }
+
         return result
     }
     

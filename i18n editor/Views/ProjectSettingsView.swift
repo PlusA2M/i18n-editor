@@ -359,7 +359,7 @@ struct ProjectSettingsView: View {
         project.pathPattern = pathPattern
 
         do {
-            try dataManager.viewContext.save()
+            dataManager.saveContext()
 
             // Save to project.inlang/settings.json
             try saveInlangConfiguration()
@@ -431,11 +431,7 @@ struct ProjectSettingsView: View {
         }
 
         // Save Core Data changes
-        do {
-            try dataManager.viewContext.save()
-        } catch {
-            print("Failed to save Core Data changes after locale updates: \(error)")
-        }
+        dataManager.saveContext()
     }
 
     private func saveInlangConfiguration() throws {

@@ -7,35 +7,61 @@
 
 import Foundation
 import RegexBuilder
+import os.log
 
 /// Scans Svelte files for i18n usage patterns and extracts i18n keys
 class SvelteFileScanner: ObservableObject {
     private let fileSystemManager = FileSystemManager()
+    private let logger = Logger(subsystem: "com.plusa.i18n-editor", category: "SvelteFileScanner")
 
     @Published var isScanning = false
     @Published var scanProgress: Double = 0.0
     @Published var currentFile: String = ""
     @Published var foundKeys: [I18nKeyUsage] = []
+    @Published var lastScanError: String?
+    @Published var scanStatistics: ScanStatistics?
 
     // Regex patterns for detecting i18n usage
     private let i18nPatterns: [NSRegularExpression] = {
         let patterns = [
-            // Pattern: m.keyName()
-            #"m\.([a-zA-Z_][a-zA-Z0-9_]*)\(\)"#,
-            // Pattern: m.nested.keyName()
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\)"#,
-            // Pattern: m.keyName(params)
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)"#,
-            // Pattern: $m.keyName (reactive statement)
-            #"\$m\.([a-zA-Z_][a-zA-Z0-9_.]*)"#,
-            // Pattern: {m.keyName()} in template
-            #"\{m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\)\}"#,
-            // Pattern: {m.keyName} in template
-            #"\{m\.([a-zA-Z_][a-zA-Z0-9_.]*)\}"#
+            // Pattern: m.keyName() - simple function call
+            #"m\.([a-zA-Z_][a-zA-Z0-9_]*)\(\s*\)"#,
+
+            // Pattern: m.nested.keyName() - nested keys with dots
+            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)"#,
+
+            // Pattern: m.keyName(params) - function call with parameters
+            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)"#,
+
+            // Pattern: $m.keyName - reactive statement (Svelte)
+            #"\$m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])"#,
+
+            // Pattern: {m.keyName()} - template expression with function call
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)\s*\}"#,
+
+            // Pattern: {m.keyName} - template expression without function call
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\s*\}"#,
+
+            // Pattern: {m.keyName(params)} - template expression with parameters
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)\s*\}"#,
+
+            // Pattern: m.keyName - direct property access (no parentheses)
+            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])(?!\()"#,
+
+            // Pattern: "m.keyName" - quoted strings (for dynamic access)
+            #"['""]m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])['""]"#,
+
+            // Pattern: m['keyName'] or m["keyName"] - bracket notation
+            #"m\[['\""]([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])['\"\"]\]"#
         ]
 
         return patterns.compactMap { pattern in
-            try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+            do {
+                return try NSRegularExpression(pattern: pattern, options: [])
+            } catch {
+                print("Failed to compile regex pattern: \(pattern) - \(error)")
+                return nil
+            }
         }
     }()
 
@@ -43,12 +69,22 @@ class SvelteFileScanner: ObservableObject {
 
     /// Scan all Svelte files in project for i18n usage
     func scanProject(_ project: Project) async -> [I18nKeyUsage] {
-        guard let projectPath = project.path else { return [] }
+        guard let projectPath = project.path else {
+            logger.error("Project path is nil")
+            await MainActor.run {
+                lastScanError = "Project path is nil"
+            }
+            return []
+        }
+
+        logger.info("Starting scan for project: \(project.name ?? "Unknown") at path: \(projectPath)")
+        let scanStartTime = Date()
 
         await MainActor.run {
             isScanning = true
             scanProgress = 0.0
             foundKeys = []
+            lastScanError = nil
         }
 
         defer {
@@ -58,8 +94,32 @@ class SvelteFileScanner: ObservableObject {
             }
         }
 
+        // Scan for Svelte files
+        logger.info("Scanning for Svelte files...")
         let svelteFiles = fileSystemManager.scanSvelteFiles(in: projectPath)
+
+        if let fileSystemError = fileSystemManager.lastScanError {
+            logger.error("File system scan error: \(fileSystemError)")
+            await MainActor.run {
+                lastScanError = fileSystemError
+            }
+            return []
+        }
+
+        logger.info("Found \(svelteFiles.count) Svelte files")
+
+        if svelteFiles.isEmpty {
+            logger.warning("No Svelte files found in project")
+            await MainActor.run {
+                lastScanError = "No Svelte files found in project"
+            }
+            return []
+        }
+
         var allKeyUsages: [I18nKeyUsage] = []
+        var filesProcessed = 0
+        var totalMatches = 0
+        var filesWithMatches = 0
 
         for (index, svelteFile) in svelteFiles.enumerated() {
             await MainActor.run {
@@ -67,23 +127,46 @@ class SvelteFileScanner: ObservableObject {
                 scanProgress = Double(index) / Double(svelteFiles.count)
             }
 
+            logger.debug("Scanning file: \(svelteFile.relativePath)")
             let keyUsages = scanSvelteFile(svelteFile, project: project)
+
+            if !keyUsages.isEmpty {
+                filesWithMatches += 1
+                totalMatches += keyUsages.count
+                logger.debug("Found \(keyUsages.count) key usages in \(svelteFile.relativePath)")
+            }
+
             allKeyUsages.append(contentsOf: keyUsages)
+            filesProcessed += 1
 
             await MainActor.run {
                 foundKeys.append(contentsOf: keyUsages)
             }
         }
 
+        let scanDuration = Date().timeIntervalSince(scanStartTime)
+        let statistics = ScanStatistics(
+            filesScanned: filesProcessed,
+            filesWithMatches: filesWithMatches,
+            totalMatches: totalMatches,
+            scanDuration: scanDuration,
+            averageMatchesPerFile: filesProcessed > 0 ? Double(totalMatches) / Double(filesProcessed) : 0.0
+        )
+
         await MainActor.run {
             scanProgress = 1.0
+            scanStatistics = statistics
         }
+
+        logger.info("Scan completed: \(totalMatches) matches in \(filesWithMatches)/\(filesProcessed) files (duration: \(String(format: "%.2f", scanDuration))s)")
 
         return allKeyUsages
     }
 
     /// Scan a single Svelte file for i18n usage
     func scanSvelteFile(_ svelteFile: SvelteFile, project: Project) -> [I18nKeyUsage] {
+        logger.debug("Scanning file: \(svelteFile.relativePath) (\(svelteFile.fileSize) bytes)")
+
         let content = svelteFile.content
         let lines = content.components(separatedBy: .newlines)
         var keyUsages: [I18nKeyUsage] = []
@@ -94,6 +177,13 @@ class SvelteFileScanner: ObservableObject {
             keyUsages.append(contentsOf: usages)
         }
 
+        if !keyUsages.isEmpty {
+            logger.debug("Found \(keyUsages.count) key usages in \(svelteFile.relativePath)")
+            for usage in keyUsages {
+                logger.debug("  Line \(usage.lineNumber): '\(usage.key)' - \(usage.fullMatch)")
+            }
+        }
+
         return keyUsages
     }
 
@@ -102,13 +192,24 @@ class SvelteFileScanner: ObservableObject {
         var keyUsages: [I18nKeyUsage] = []
         let nsLine = line as NSString
 
-        for pattern in i18nPatterns {
+        // Skip empty lines or lines with only whitespace
+        guard !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return keyUsages
+        }
+
+        for (patternIndex, pattern) in i18nPatterns.enumerated() {
             let matches = pattern.matches(in: line, options: [], range: NSRange(location: 0, length: nsLine.length))
 
             for match in matches {
                 if match.numberOfRanges > 1 {
                     let keyRange = match.range(at: 1)
                     let key = nsLine.substring(with: keyRange)
+
+                    // Skip empty keys
+                    guard !key.isEmpty else {
+                        logger.warning("Empty key found in \(file.relativePath):\(lineNumber)")
+                        continue
+                    }
 
                     // Get the full match for context
                     let fullMatchRange = match.range(at: 0)
@@ -133,6 +234,8 @@ class SvelteFileScanner: ObservableObject {
                     )
 
                     keyUsages.append(keyUsage)
+
+                    logger.debug("Pattern \(patternIndex + 1) matched: '\(key)' at \(file.relativePath):\(lineNumber):\(columnNumber)")
                 }
             }
         }
@@ -383,4 +486,12 @@ struct DuplicateKeyGroup: Identifiable {
     let keys: [String]
     let similarity: Double
     let suggestion: String
+}
+
+struct ScanStatistics {
+    let filesScanned: Int
+    let filesWithMatches: Int
+    let totalMatches: Int
+    let scanDuration: TimeInterval
+    let averageMatchesPerFile: Double
 }

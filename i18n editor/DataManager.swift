@@ -66,8 +66,11 @@ class DataManager: ObservableObject {
 
     // MARK: - I18n Key Management
 
-    /// Create or update an i18n key
+    /// Create or update an i18n key (must be called from main thread)
     func createOrUpdateI18nKey(key: String, project: Project, namespace: String? = nil) -> I18nKey {
+        // Assert we're on the main thread
+        assert(Thread.isMainThread, "createOrUpdateI18nKey must be called from main thread")
+
         // Check if key already exists
         if let existingKey = getI18nKey(key: key, project: project) {
             existingKey.lastModified = Date()
@@ -96,8 +99,11 @@ class DataManager: ObservableObject {
         return i18nKey
     }
 
-    /// Get an i18n key by key string and project
+    /// Get an i18n key by key string and project (must be called from main thread)
     func getI18nKey(key: String, project: Project) -> I18nKey? {
+        // Assert we're on the main thread
+        assert(Thread.isMainThread, "getI18nKey must be called from main thread")
+
         let request: NSFetchRequest<I18nKey> = I18nKey.fetchRequest()
         request.predicate = NSPredicate(format: "key == %@ AND project == %@", key, project)
         request.fetchLimit = 1
@@ -218,8 +224,11 @@ class DataManager: ObservableObject {
 
     // MARK: - File Usage Management
 
-    /// Record file usage for an i18n key
+    /// Record file usage for an i18n key (must be called from main thread)
     func recordFileUsage(i18nKey: I18nKey, filePath: String, lineNumber: Int32, columnNumber: Int32? = nil, context: String? = nil) -> FileUsage {
+        // Assert we're on the main thread
+        assert(Thread.isMainThread, "recordFileUsage must be called from main thread")
+
         // Check if usage already exists
         let request: NSFetchRequest<FileUsage> = FileUsage.fetchRequest()
         request.predicate = NSPredicate(format: "i18nKey == %@ AND filePath == %@ AND lineNumber == %d", i18nKey, filePath, lineNumber)
@@ -313,11 +322,22 @@ class DataManager: ObservableObject {
     // MARK: - Core Data Operations
 
     /// Save the managed object context
-    private func saveContext() {
-        do {
-            try viewContext.save()
-        } catch {
-            print("Error saving context: \(error)")
+    func saveContext() {
+        // Ensure we're on the main thread for Core Data operations
+        if Thread.isMainThread {
+            do {
+                try viewContext.save()
+            } catch {
+                print("Error saving context: \(error)")
+            }
+        } else {
+            DispatchQueue.main.async {
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("Error saving context: \(error)")
+                }
+            }
         }
     }
 }

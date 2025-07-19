@@ -7,28 +7,34 @@
 
 import Foundation
 import CoreData
+import os.log
 
 /// Extracts and processes i18n keys from scan results, managing Core Data persistence
 class I18nKeyExtractor: ObservableObject {
     private let dataManager = DataManager.shared
     private let svelteScanner = SvelteFileScanner()
+    private let logger = Logger(subsystem: "com.plusa.i18n-editor", category: "I18nKeyExtractor")
 
     @Published var isExtracting = false
     @Published var extractionProgress: Double = 0.0
     @Published var currentOperation: String = ""
     @Published var extractedKeysCount: Int = 0
     @Published var updatedKeysCount: Int = 0
+    @Published var lastExtractionError: String?
 
     // MARK: - Main Extraction Methods
 
     /// Extract all i18n keys from project and update database
     func extractKeysFromProject(_ project: Project) async -> ExtractionResult {
+        logger.info("Starting key extraction for project: \(project.name ?? "Unknown")")
+
         await MainActor.run {
             isExtracting = true
             extractionProgress = 0.0
             currentOperation = "Scanning Svelte files..."
             extractedKeysCount = 0
             updatedKeysCount = 0
+            lastExtractionError = nil
         }
 
         defer {
@@ -44,7 +50,18 @@ class I18nKeyExtractor: ObservableObject {
             currentOperation = "Scanning for i18n usage patterns..."
         }
 
+        logger.info("Starting Svelte file scan...")
         let keyUsages = await svelteScanner.scanProject(project)
+
+        if let scanError = svelteScanner.lastScanError {
+            logger.error("Svelte scanner error: \(scanError)")
+            await MainActor.run {
+                lastExtractionError = scanError
+            }
+            // Continue with extraction even if there are scan errors
+        }
+
+        logger.info("Scan completed: found \(keyUsages.count) key usages")
 
         // Step 2: Process and extract unique keys
         await MainActor.run {
@@ -60,7 +77,9 @@ class I18nKeyExtractor: ObservableObject {
             currentOperation = "Updating database..."
         }
 
+        logger.info("Updating database with \(processedKeys.count) processed keys...")
         let databaseResult = await updateDatabase(with: processedKeys, project: project)
+        logger.info("Database update completed: \(databaseResult.newKeys) new, \(databaseResult.updatedKeys) updated")
 
         // Step 4: Analyze key structure
         await MainActor.run {
@@ -76,7 +95,7 @@ class I18nKeyExtractor: ObservableObject {
             currentOperation = "Cleaning up inactive usages..."
         }
 
-        cleanupInactiveUsages(project: project, activeUsages: keyUsages)
+        await cleanupInactiveUsages(project: project, activeUsages: keyUsages)
 
         await MainActor.run {
             extractionProgress = 1.0
@@ -133,41 +152,42 @@ class I18nKeyExtractor: ObservableObject {
 
     /// Update database with processed keys
     private func updateDatabase(with processedKeys: [ProcessedKey], project: Project) async -> DatabaseUpdateResult {
-        var newKeys = 0
-        var updatedKeys = 0
+        // Perform all Core Data operations on the main thread
+        return await MainActor.run {
+            var newKeys = 0
+            var updatedKeys = 0
 
-        for (index, processedKey) in processedKeys.enumerated() {
-            // Update progress
-            await MainActor.run {
+            for (index, processedKey) in processedKeys.enumerated() {
+                // Update progress
                 extractionProgress = 0.6 + (0.2 * Double(index) / Double(processedKeys.count))
+
+                // Create or update i18n key
+                let i18nKey = dataManager.createOrUpdateI18nKey(
+                    key: processedKey.key,
+                    project: project,
+                    namespace: processedKey.namespace
+                )
+
+                // Check if this is a new key
+                if i18nKey.detectedAt == i18nKey.lastModified {
+                    newKeys += 1
+                } else {
+                    updatedKeys += 1
+                }
+
+                // Update key properties
+                i18nKey.isNested = processedKey.isNested
+                i18nKey.parentKey = processedKey.parentKey
+
+                // Update file usages
+                updateFileUsages(for: i18nKey, with: processedKey.usages)
             }
 
-            // Create or update i18n key
-            let i18nKey = dataManager.createOrUpdateI18nKey(
-                key: processedKey.key,
-                project: project,
-                namespace: processedKey.namespace
-            )
+            // Save context
+            dataManager.saveContext()
 
-            // Check if this is a new key
-            if i18nKey.detectedAt == i18nKey.lastModified {
-                newKeys += 1
-            } else {
-                updatedKeys += 1
-            }
-
-            // Update key properties
-            i18nKey.isNested = processedKey.isNested
-            i18nKey.parentKey = processedKey.parentKey
-
-            // Update file usages
-            updateFileUsages(for: i18nKey, with: processedKey.usages)
+            return DatabaseUpdateResult(newKeys: newKeys, updatedKeys: updatedKeys)
         }
-
-        // Save context
-        try? dataManager.viewContext.save()
-
-        return DatabaseUpdateResult(newKeys: newKeys, updatedKeys: updatedKeys)
     }
 
     /// Update file usages for an i18n key
@@ -192,26 +212,28 @@ class I18nKeyExtractor: ObservableObject {
     }
 
     /// Clean up inactive file usages
-    private func cleanupInactiveUsages(project: Project, activeUsages: [I18nKeyUsage]) {
-        let request: NSFetchRequest<FileUsage> = FileUsage.fetchRequest()
-        request.predicate = NSPredicate(format: "project == %@ AND isActive == NO", project)
+    private func cleanupInactiveUsages(project: Project, activeUsages: [I18nKeyUsage]) async {
+        await MainActor.run {
+            let request: NSFetchRequest<FileUsage> = FileUsage.fetchRequest()
+            request.predicate = NSPredicate(format: "project == %@ AND isActive == NO", project)
 
-        do {
-            let inactiveUsages = try dataManager.viewContext.fetch(request)
+            do {
+                let inactiveUsages = try dataManager.viewContext.fetch(request)
 
-            // Remove usages that haven't been active for more than one scan cycle
-            let cutoffDate = Date().addingTimeInterval(-3600) // 1 hour ago
+                // Remove usages that haven't been active for more than one scan cycle
+                let cutoffDate = Date().addingTimeInterval(-3600) // 1 hour ago
 
-            for usage in inactiveUsages {
-                if usage.detectedAt ?? Date.distantPast < cutoffDate {
-                    dataManager.viewContext.delete(usage)
+                for usage in inactiveUsages {
+                    if usage.detectedAt ?? Date.distantPast < cutoffDate {
+                        dataManager.viewContext.delete(usage)
+                    }
                 }
+
+                dataManager.saveContext()
+
+            } catch {
+                print("Error cleaning up inactive usages: \(error)")
             }
-
-            try dataManager.viewContext.save()
-
-        } catch {
-            print("Error cleaning up inactive usages: \(error)")
         }
     }
 

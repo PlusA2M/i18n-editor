@@ -8,18 +8,21 @@
 import Foundation
 import Combine
 import CoreData
+import os.log
 
 /// Real-time usage tracking system for i18n keys across the codebase
 class UsageTrackingSystem: ObservableObject {
     private let dataManager = DataManager.shared
     private let fileSystemManager = FileSystemManager()
     private let keyExtractor = I18nKeyExtractor()
+    private let logger = Logger(subsystem: "com.plusa.i18n-editor", category: "UsageTrackingSystem")
 
     @Published var isTracking = false
     @Published var trackedProject: Project?
     @Published var usageStatistics: UsageStatistics?
     @Published var recentChanges: [UsageChange] = []
     @Published var lastUpdateTime: Date?
+    @Published var trackingError: String?
 
     private var fileWatchingCancellable: AnyCancellable?
     private var updateQueue = DispatchQueue(label: "usage-tracking", qos: .background)
@@ -30,17 +33,33 @@ class UsageTrackingSystem: ObservableObject {
 
     /// Start tracking usage for a project
     func startTracking(project: Project) {
-        guard let projectPath = project.path else { return }
+        guard let projectPath = project.path else {
+            logger.error("Cannot start tracking: project path is nil")
+            trackingError = "Project path is nil"
+            return
+        }
+
+        logger.info("Starting usage tracking for project: \(project.name ?? "Unknown") at path: \(projectPath)")
 
         stopTracking()
 
         trackedProject = project
         isTracking = true
+        trackingError = nil
 
-        // Initial statistics calculation
-        calculateUsageStatistics()
+        // Initial extraction and statistics calculation
+        logger.info("Performing initial key extraction...")
+        Task {
+            let result = await keyExtractor.extractKeysFromProject(project)
+            logger.info("Initial extraction completed: \(result.totalKeysFound) keys found")
+
+            await MainActor.run {
+                calculateUsageStatistics()
+            }
+        }
 
         // Start file system watching
+        logger.info("Starting file system watching...")
         fileSystemManager.startWatching(projectPath: projectPath) { [weak self] event in
             self?.handleFileSystemEvent(event)
         }
@@ -48,7 +67,7 @@ class UsageTrackingSystem: ObservableObject {
         // Set up periodic updates
         setupPeriodicUpdates()
 
-        print("Started usage tracking for project: \(project.name ?? "Unknown")")
+        logger.info("Usage tracking started successfully for project: \(project.name ?? "Unknown")")
     }
 
     /// Stop tracking usage
@@ -69,6 +88,22 @@ class UsageTrackingSystem: ObservableObject {
     /// Force refresh of usage statistics
     func refreshUsageStatistics() {
         calculateUsageStatistics()
+    }
+
+    /// Force full rescan of the project
+    func forceFullRescan() async {
+        guard let project = trackedProject else {
+            logger.warning("Cannot rescan: no tracked project")
+            return
+        }
+
+        logger.info("Starting forced full rescan...")
+        let result = await keyExtractor.extractKeysFromProject(project)
+        logger.info("Full rescan completed: \(result.totalKeysFound) keys found")
+
+        await MainActor.run {
+            calculateUsageStatistics()
+        }
     }
 
     // MARK: - File System Event Handling
@@ -170,11 +205,18 @@ class UsageTrackingSystem: ObservableObject {
     // MARK: - Statistics Calculation
 
     private func calculateUsageStatistics() {
-        guard let project = trackedProject else { return }
+        guard let project = trackedProject else {
+            logger.warning("Cannot calculate statistics: no tracked project")
+            return
+        }
+
+        logger.info("Calculating usage statistics for project: \(project.name ?? "Unknown")")
 
         let i18nKeys = dataManager.getI18nKeys(for: project)
         let allTranslations = project.translations?.allObjects as? [Translation] ?? []
         let allFileUsages = project.fileUsages?.allObjects as? [FileUsage] ?? []
+
+        logger.debug("Found \(i18nKeys.count) i18n keys, \(allFileUsages.count) file usages, \(allTranslations.count) translations")
 
         // Calculate key usage statistics
         var keyUsageStats: [KeyUsageInfo] = []

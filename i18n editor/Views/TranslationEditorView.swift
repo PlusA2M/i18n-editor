@@ -20,6 +20,7 @@ struct TranslationEditorView: View {
     @State private var showingSettings = false
     @State private var showingValidation = false
     @State private var showingSmartRefactoring = false
+    @State private var showingUsageDebug = false
     @State private var sortOrder: SortOrder = .alphabetical
     @State private var filterOption: FilterOption = .all
     @State private var hasUnsavedChanges = false
@@ -44,7 +45,7 @@ struct TranslationEditorView: View {
 
                 Divider()
 
-                StatisticsSection(statistics: usageTracker.usageStatistics)
+                StatisticsSection(statistics: usageTracker.usageStatistics, usageTracker: usageTracker)
 
                 Spacer()
             }
@@ -79,6 +80,11 @@ struct TranslationEditorView: View {
                 }
                 .help("Save all draft translations to files")
                 .disabled(!hasUnsavedChanges)
+
+                Button("Usage") {
+                    showingUsageDebug = true
+                }
+                .help("Usage tracking details and debugging")
 
                 Button("Settings") {
                     showingSettings = true
@@ -120,6 +126,9 @@ struct TranslationEditorView: View {
         }
         .sheet(isPresented: $showingSmartRefactoring) {
             SmartRefactoringView(project: project)
+        }
+        .sheet(isPresented: $showingUsageDebug) {
+            UsageTrackingDebugView(project: project, usageTracker: usageTracker)
         }
     }
 
@@ -360,20 +369,16 @@ struct TranslationEditorView: View {
         }
 
         // Save all changes
-        do {
-            try dataManager.viewContext.save()
-            print("Successfully reloaded translation data")
+        dataManager.saveContext()
+        print("Successfully reloaded translation data")
 
-            // Force UI refresh by posting additional notifications
-            DispatchQueue.main.async {
-                // Trigger a complete UI refresh
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("TranslationDataReloaded"),
-                    object: self.project
-                )
-            }
-        } catch {
-            print("Error saving reloaded translation data: \(error)")
+        // Force UI refresh by posting additional notifications
+        DispatchQueue.main.async {
+            // Trigger a complete UI refresh
+            NotificationCenter.default.post(
+                name: NSNotification.Name("TranslationDataReloaded"),
+                object: self.project
+            )
         }
     }
 
@@ -510,23 +515,51 @@ struct FilterSection: View {
 
 struct StatisticsSection: View {
     let statistics: UsageStatistics?
+    @ObservedObject var usageTracker: UsageTrackingSystem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Statistics")
-                .font(.headline)
-                .foregroundColor(.secondary)
+            HStack {
+                Text("Usage Tracking")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                // Status indicator
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(usageTracker.isTracking ? Color.green : Color.gray)
+                        .frame(width: 8, height: 8)
+
+                    Text(usageTracker.isTracking ? "Active" : "Inactive")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
 
             if let stats = statistics {
                 VStack(alignment: .leading, spacing: 4) {
                     StatRow(label: "Total Keys", value: "\(stats.totalKeys)")
                     StatRow(label: "Total Usages", value: "\(stats.totalUsages)")
                     StatRow(label: "Files", value: "\(stats.totalFiles)")
+                    StatRow(label: "Used Keys", value: "\(stats.keysWithUsage)")
+                    StatRow(label: "Unused Keys", value: "\(stats.keysWithoutUsage)")
                     StatRow(label: "Completion", value: "\(Int(stats.translationCompletionRate * 100))%")
+
+                    StatRow(label: "Last Updated", value: DateFormatter.shortTime.string(from: stats.lastCalculated))
                 }
             } else {
                 Text("Loading...")
                     .foregroundColor(.secondary)
+            }
+
+            // Show tracking error if any
+            if let error = usageTracker.trackingError {
+                Text("Error: \(error)")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.top, 4)
             }
         }
     }
@@ -1400,6 +1433,15 @@ enum SortOrder: CaseIterable {
     case usage
     case lastModified
     case completion
+}
+
+extension DateFormatter {
+    static let shortTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
 }
 
 enum FilterOption: CaseIterable {

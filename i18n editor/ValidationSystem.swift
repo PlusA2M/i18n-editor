@@ -453,7 +453,7 @@ class ValidationSystem: ObservableObject {
         // Set base locale to first available locale
         if let firstLocale = project.allLocales.first {
             project.baseLocale = firstLocale
-            try? dataManager.viewContext.save()
+            dataManager.saveContext()
             return true
         }
         
@@ -465,13 +465,8 @@ class ValidationSystem: ObservableObject {
         
         // Remove the key and all its translations
         dataManager.viewContext.delete(key)
-        
-        do {
-            try dataManager.viewContext.save()
-            return true
-        } catch {
-            return false
-        }
+        dataManager.saveContext()
+        return true
     }
     
     private func createEmptyLocaleFile(_ result: ValidationResult) async -> Bool {
