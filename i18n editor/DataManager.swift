@@ -74,7 +74,7 @@ class DataManager: ObservableObject {
         // Check if key already exists
         if let existingKey = getI18nKey(key: key, project: project) {
             existingKey.lastModified = Date()
-            saveContext()
+            // Don't save context here - let caller handle batching
             return existingKey
         }
 
@@ -95,7 +95,7 @@ class DataManager: ObservableObject {
             }
         }
 
-        saveContext()
+        // Don't save context here - let caller handle batching
         return i18nKey
     }
 
@@ -238,7 +238,7 @@ class DataManager: ObservableObject {
             existingUsage.isActive = true
             existingUsage.detectedAt = Date()
             existingUsage.context = context
-            saveContext()
+            // Don't save context here - let caller handle batching
             return existingUsage
         }
 
@@ -254,7 +254,7 @@ class DataManager: ObservableObject {
         fileUsage.detectedAt = Date()
         fileUsage.isActive = true
 
-        saveContext()
+        // Don't save context here - let caller handle batching
         return fileUsage
     }
 

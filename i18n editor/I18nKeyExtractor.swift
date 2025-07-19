@@ -152,14 +152,25 @@ class I18nKeyExtractor: ObservableObject {
 
     /// Update database with processed keys
     private func updateDatabase(with processedKeys: [ProcessedKey], project: Project) async -> DatabaseUpdateResult {
-        // Perform all Core Data operations on the main thread
+        // Perform all Core Data operations on the main thread with batching
         return await MainActor.run {
             var newKeys = 0
             var updatedKeys = 0
+            let batchSize = 50 // Process in batches to improve performance
+
+            // Disable automatic saving during batch operations
+            let context = dataManager.viewContext
+            context.automaticallyMergesChangesFromParent = false
+
+            defer {
+                context.automaticallyMergesChangesFromParent = true
+            }
 
             for (index, processedKey) in processedKeys.enumerated() {
-                // Update progress
-                extractionProgress = 0.6 + (0.2 * Double(index) / Double(processedKeys.count))
+                // Update progress every 10 items to reduce UI updates
+                if index % 10 == 0 {
+                    extractionProgress = 0.6 + (0.2 * Double(index) / Double(processedKeys.count))
+                }
 
                 // Create or update i18n key
                 let i18nKey = dataManager.createOrUpdateI18nKey(
@@ -181,9 +192,14 @@ class I18nKeyExtractor: ObservableObject {
 
                 // Update file usages
                 updateFileUsages(for: i18nKey, with: processedKey.usages)
+
+                // Save in batches to avoid memory buildup
+                if index % batchSize == 0 && index > 0 {
+                    dataManager.saveContext()
+                }
             }
 
-            // Save context
+            // Final save
             dataManager.saveContext()
 
             return DatabaseUpdateResult(newKeys: newKeys, updatedKeys: updatedKeys)

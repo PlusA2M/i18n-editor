@@ -969,6 +969,15 @@ struct TranslationTableHeader: View {
 
             Divider()
 
+            // File usage column header
+            Text("Used In")
+                .font(.system(.body, weight: .semibold))
+                .frame(width: 180, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+
+            Divider()
+
             // Locale column headers
             ForEach(locales, id: \.self) { locale in
                 Text(locale.uppercased())
@@ -998,6 +1007,11 @@ struct TranslationTableRow: View {
         HStack(spacing: 0) {
             // Key column
             KeyCell(key: key, isSelected: isSelected)
+
+            Divider()
+
+            // File usage column
+            FileUsageCell(key: key, isSelected: isSelected)
 
             Divider()
 
@@ -1064,6 +1078,67 @@ struct KeyCell: View {
             Rectangle()
                 .stroke(key.hasMissingTranslations ? Color.red.opacity(0.2) : Color.clear, lineWidth: key.hasMissingTranslations ? 1 : 0)
         )
+    }
+}
+
+struct FileUsageCell: View {
+    let key: I18nKey
+    let isSelected: Bool
+
+    private var fileUsages: [FileUsage] {
+        key.activeFileUsages.sorted { usage1, usage2 in
+            (usage1.filePath ?? "") < (usage2.filePath ?? "")
+        }
+    }
+
+    private func getRelativePath(_ fullPath: String) -> String {
+        // Extract path relative to project root
+        if let projectPath = key.project?.path {
+            if fullPath.hasPrefix(projectPath) {
+                let relativePath = String(fullPath.dropFirst(projectPath.count))
+                return relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+            }
+        }
+        return fullPath
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if fileUsages.isEmpty {
+                Text("Not used")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
+            } else {
+                ForEach(Array(fileUsages.prefix(3).enumerated()), id: \.element.id) { index, usage in
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.text")
+                            .font(.caption2)
+                            .foregroundColor(.blue)
+
+                        Text(getRelativePath(usage.filePath ?? ""))
+                            .font(.caption)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+
+                        Text(":\(usage.lineNumber)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                if fileUsages.count > 3 {
+                    Text("+ \(fileUsages.count - 3) more")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .italic()
+                }
+            }
+        }
+        .frame(width: 180, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 }
 

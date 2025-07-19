@@ -212,95 +212,108 @@ class UsageTrackingSystem: ObservableObject {
 
         logger.info("Calculating usage statistics for project: \(project.name ?? "Unknown")")
 
-        let i18nKeys = dataManager.getI18nKeys(for: project)
-        let allTranslations = project.translations?.allObjects as? [Translation] ?? []
-        let allFileUsages = project.fileUsages?.allObjects as? [FileUsage] ?? []
+        // Perform statistics calculation on background queue for better performance
+        Task.detached { [weak self] in
+            guard let self = self else { return }
 
-        logger.debug("Found \(i18nKeys.count) i18n keys, \(allFileUsages.count) file usages, \(allTranslations.count) translations")
+            let i18nKeys = await MainActor.run {
+                self.dataManager.getI18nKeys(for: project)
+            }
 
-        // Calculate key usage statistics
-        var keyUsageStats: [KeyUsageInfo] = []
-        var fileUsageStats: [FileUsageInfo] = []
+            let allTranslations = await MainActor.run {
+                project.translations?.allObjects as? [Translation] ?? []
+            }
 
-        for key in i18nKeys {
-            let activeUsages = key.activeFileUsages
-            let translations = key.allTranslations
+            let allFileUsages = await MainActor.run {
+                project.fileUsages?.allObjects as? [FileUsage] ?? []
+            }
 
-            let usageInfo = KeyUsageInfo(
-                key: key.key ?? "",
-                usageCount: activeUsages.count,
-                fileCount: Set(activeUsages.map { $0.filePath ?? "" }).count,
-                translationCount: translations.count,
-                completionPercentage: key.completionPercentage,
-                lastUsed: activeUsages.map { $0.detectedAt ?? Date.distantPast }.max() ?? Date.distantPast,
-                isNested: key.isNested,
-                namespace: key.namespace
+            self.logger.debug("Found \(i18nKeys.count) i18n keys, \(allFileUsages.count) file usages, \(allTranslations.count) translations")
+
+            // Calculate key usage statistics
+            var keyUsageStats: [KeyUsageInfo] = []
+            var fileUsageStats: [FileUsageInfo] = []
+
+            for key in i18nKeys {
+                let activeUsages = key.activeFileUsages
+                let translations = key.allTranslations
+
+                let usageInfo = KeyUsageInfo(
+                    key: key.key ?? "",
+                    usageCount: activeUsages.count,
+                    fileCount: Set(activeUsages.map { $0.filePath ?? "" }).count,
+                    translationCount: translations.count,
+                    completionPercentage: key.completionPercentage,
+                    lastUsed: activeUsages.map { $0.detectedAt ?? Date.distantPast }.max() ?? Date.distantPast,
+                    isNested: key.isNested,
+                    namespace: key.namespace
+                )
+
+                keyUsageStats.append(usageInfo)
+            }
+
+            // Calculate file usage statistics
+            let fileGroups = Dictionary(grouping: allFileUsages.filter { $0.isActive }) { $0.filePath ?? "" }
+
+            for (filePath, usages) in fileGroups {
+                let uniqueKeys = Set(usages.compactMap { $0.i18nKey?.key })
+
+                let fileInfo = FileUsageInfo(
+                    filePath: filePath,
+                    relativePath: self.getRelativePath(filePath, project: project),
+                    keyCount: uniqueKeys.count,
+                    usageCount: usages.count,
+                    lastModified: usages.compactMap { $0.detectedAt }.max() ?? Date.distantPast
+                )
+
+                fileUsageStats.append(fileInfo)
+            }
+
+            // Calculate overall statistics
+            let totalKeys = keyUsageStats.count
+            let totalUsages = keyUsageStats.reduce(0) { $0 + $1.usageCount }
+            let totalFiles = fileUsageStats.count
+            let keysWithUsage = keyUsageStats.filter { $0.usageCount > 0 }.count
+            let keysWithoutUsage = totalKeys - keysWithUsage
+            let averageUsagePerKey = totalKeys > 0 ? Double(totalUsages) / Double(totalKeys) : 0.0
+
+            // Translation completion statistics
+            let totalTranslations = allTranslations.count
+            let completedTranslations = allTranslations.filter { !($0.value?.isEmpty ?? true) }.count
+            let draftTranslations = allTranslations.filter { $0.isDraft }.count
+            let translationCompletionRate = totalTranslations > 0 ? Double(completedTranslations) / Double(totalTranslations) : 0.0
+
+            // Most and least used keys
+            let sortedByUsage = keyUsageStats.sorted { $0.usageCount > $1.usageCount }
+            let mostUsedKeys = Array(sortedByUsage.prefix(10))
+            let leastUsedKeys = Array(sortedByUsage.suffix(10).reversed())
+
+            // Files with most keys
+            let sortedFilesByKeys = fileUsageStats.sorted { $0.keyCount > $1.keyCount }
+            let filesWithMostKeys = Array(sortedFilesByKeys.prefix(10))
+
+            let statistics = UsageStatistics(
+                totalKeys: totalKeys,
+                totalUsages: totalUsages,
+                totalFiles: totalFiles,
+                keysWithUsage: keysWithUsage,
+                keysWithoutUsage: keysWithoutUsage,
+                averageUsagePerKey: averageUsagePerKey,
+                totalTranslations: totalTranslations,
+                completedTranslations: completedTranslations,
+                draftTranslations: draftTranslations,
+                translationCompletionRate: translationCompletionRate,
+                keyUsageStats: keyUsageStats,
+                fileUsageStats: fileUsageStats,
+                mostUsedKeys: mostUsedKeys,
+                leastUsedKeys: leastUsedKeys,
+                filesWithMostKeys: filesWithMostKeys,
+                lastCalculated: Date()
             )
 
-            keyUsageStats.append(usageInfo)
-        }
-
-        // Calculate file usage statistics
-        let fileGroups = Dictionary(grouping: allFileUsages.filter { $0.isActive }) { $0.filePath ?? "" }
-
-        for (filePath, usages) in fileGroups {
-            let uniqueKeys = Set(usages.compactMap { $0.i18nKey?.key })
-
-            let fileInfo = FileUsageInfo(
-                filePath: filePath,
-                relativePath: getRelativePath(filePath, project: project),
-                keyCount: uniqueKeys.count,
-                usageCount: usages.count,
-                lastModified: usages.compactMap { $0.detectedAt }.max() ?? Date.distantPast
-            )
-
-            fileUsageStats.append(fileInfo)
-        }
-
-        // Calculate overall statistics
-        let totalKeys = keyUsageStats.count
-        let totalUsages = keyUsageStats.reduce(0) { $0 + $1.usageCount }
-        let totalFiles = fileUsageStats.count
-        let keysWithUsage = keyUsageStats.filter { $0.usageCount > 0 }.count
-        let keysWithoutUsage = totalKeys - keysWithUsage
-        let averageUsagePerKey = totalKeys > 0 ? Double(totalUsages) / Double(totalKeys) : 0.0
-
-        // Translation completion statistics
-        let totalTranslations = allTranslations.count
-        let completedTranslations = allTranslations.filter { !($0.value?.isEmpty ?? true) }.count
-        let draftTranslations = allTranslations.filter { $0.isDraft }.count
-        let translationCompletionRate = totalTranslations > 0 ? Double(completedTranslations) / Double(totalTranslations) : 0.0
-
-        // Most and least used keys
-        let sortedByUsage = keyUsageStats.sorted { $0.usageCount > $1.usageCount }
-        let mostUsedKeys = Array(sortedByUsage.prefix(10))
-        let leastUsedKeys = Array(sortedByUsage.suffix(10).reversed())
-
-        // Files with most keys
-        let sortedFilesByKeys = fileUsageStats.sorted { $0.keyCount > $1.keyCount }
-        let filesWithMostKeys = Array(sortedFilesByKeys.prefix(10))
-
-        let statistics = UsageStatistics(
-            totalKeys: totalKeys,
-            totalUsages: totalUsages,
-            totalFiles: totalFiles,
-            keysWithUsage: keysWithUsage,
-            keysWithoutUsage: keysWithoutUsage,
-            averageUsagePerKey: averageUsagePerKey,
-            totalTranslations: totalTranslations,
-            completedTranslations: completedTranslations,
-            draftTranslations: draftTranslations,
-            translationCompletionRate: translationCompletionRate,
-            keyUsageStats: keyUsageStats,
-            fileUsageStats: fileUsageStats,
-            mostUsedKeys: mostUsedKeys,
-            leastUsedKeys: leastUsedKeys,
-            filesWithMostKeys: filesWithMostKeys,
-            lastCalculated: Date()
-        )
-
-        DispatchQueue.main.async {
-            self.usageStatistics = statistics
+            await MainActor.run {
+                self.usageStatistics = statistics
+            }
         }
     }
 
