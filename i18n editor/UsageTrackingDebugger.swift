@@ -520,12 +520,16 @@ class UsageTrackingDebugger: ObservableObject {
             ("this.m.value()", false, nil),
         ]
 
-        // Get patterns (same as SvelteFileScanner)
+        // Get patterns (same as SvelteFileScanner) - including bracket notation
         let patterns = [
             #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)"#,
             #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)"#,
+            #"(?<![A-Za-z0-9])m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\(\s*\)"#,
+            #"(?<![A-Za-z0-9])m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\([^)]*\)"#,
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)\s*\}"#,
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)\s*\}"#,
+            #"\{\s*m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\(\s*\)\s*\}"#,
+            #"\{\s*m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\([^)]*\)\s*\}"#,
         ]
 
         let regexPatterns = patterns.compactMap { pattern in

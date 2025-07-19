@@ -59,7 +59,8 @@ struct TranslationEditorView: View {
                 searchText: searchText,
                 sortOrder: sortOrder,
                 filterOption: filterOption,
-                selectedKeys: $selectedKeys
+                selectedKeys: $selectedKeys,
+                usageTracker: usageTracker
             )
         }
         .navigationTitle("Translation Editor")
@@ -529,7 +530,7 @@ struct StatisticsSection: View {
                 // Status indicator with refresh button
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(usageTracker.isTracking ? Color.green : Color.gray)
+                        .fill(statusIndicatorColor)
                         .frame(width: 8, height: 8)
 
                     Button(action: {
@@ -537,13 +538,17 @@ struct StatisticsSection: View {
                             await usageTracker.forceFullRescan()
                         }
                     }) {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemName: usageTracker.isScanning ? "arrow.clockwise" : "arrow.clockwise")
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(usageTracker.isScanning ? .secondary : .blue)
+                            .rotationEffect(.degrees(usageTracker.isScanning ? 360 : 0))
+                            .animation(usageTracker.isScanning ?
+                                      Animation.linear(duration: 1.0).repeatForever(autoreverses: false) :
+                                      .default, value: usageTracker.isScanning)
                     }
                     .buttonStyle(.plain)
-                    .help("Force rescan project")
-                    .disabled(!usageTracker.isTracking)
+                    .help(usageTracker.isScanning ? "Scanning in progress..." : "Force rescan project")
+                    .disabled(!usageTracker.isTracking || usageTracker.isScanning)
                 }
             }
 
@@ -570,6 +575,16 @@ struct StatisticsSection: View {
                     .foregroundColor(.red)
                     .padding(.top, 4)
             }
+        }
+    }
+
+    private var statusIndicatorColor: Color {
+        if !usageTracker.isTracking {
+            return .gray
+        } else if usageTracker.isScanning {
+            return .orange
+        } else {
+            return .green
         }
     }
 }
@@ -663,6 +678,7 @@ struct TranslationTableView: View {
     let sortOrder: SortOrder
     let filterOption: FilterOption
     @Binding var selectedKeys: Set<String>
+    @ObservedObject var usageTracker: UsageTrackingSystem
 
     @State private var i18nKeys: [I18nKey] = []
     @State private var locales: [String] = []
@@ -764,6 +780,20 @@ struct TranslationTableView: View {
                 DispatchQueue.main.async {
                     loadData()
                     refreshTrigger = UUID()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SmartRefactoringCompleted"))) { notification in
+            if let notificationProject = notification.object as? Project,
+               notificationProject.objectID == project.objectID,
+               let shouldRescan = notification.userInfo?["shouldRescan"] as? Bool,
+               shouldRescan {
+                // Trigger automatic rescan after Smart Refactoring
+                DispatchQueue.main.async {
+                    Task {
+                        await usageTracker.forceFullRescan()
+                        // UI will refresh automatically when rescan completes via existing notifications
+                    }
                 }
             }
         }
@@ -1176,7 +1206,7 @@ struct FileUsageCell: View {
                         .buttonStyle(.plain)
                         .help("Open file directory")
 
-                        Text(getRelativePath(usage.filePath ?? ""))
+                        Text(getRelativeProjectPath(usage.filePath ?? ""))
                             .font(.caption)
                             .foregroundColor(.primary)
                             .lineLimit(1)
@@ -1212,9 +1242,39 @@ struct FileUsageCell: View {
     private func buildAdditionalFilesTooltip() -> String {
         let additionalUsages = Array(fileUsages.dropFirst(3))
         let tooltipLines = additionalUsages.map { usage in
-            "\(getRelativePath(usage.filePath ?? "")):\(usage.lineNumber)"
+            "\(getRelativeProjectPath(usage.filePath ?? "")):\(usage.lineNumber)"
         }
         return "Additional files:\n" + tooltipLines.joined(separator: "\n")
+    }
+
+    private func getRelativeProjectPath(_ fullPath: String) -> String {
+        // Try to find common project root indicators
+        let projectIndicators = ["src/", "package.json", "svelte.config", "vite.config"]
+
+        for indicator in projectIndicators {
+            if let range = fullPath.range(of: indicator) {
+                // If we find src/, include it in the path
+                if indicator == "src/" {
+                    return String(fullPath[range.lowerBound...])
+                } else {
+                    // For other indicators, find the directory containing them
+                    let pathBeforeIndicator = String(fullPath[..<range.lowerBound])
+                    if let lastSlash = pathBeforeIndicator.lastIndex(of: "/") {
+                        let projectRoot = String(fullPath[fullPath.index(after: lastSlash)...])
+                        return projectRoot
+                    }
+                }
+            }
+        }
+
+        // Fallback: try to find a reasonable relative path
+        let components = fullPath.components(separatedBy: "/")
+        if let srcIndex = components.firstIndex(of: "src") {
+            return components[srcIndex...].joined(separator: "/")
+        }
+
+        // Last resort: just show the filename
+        return URL(fileURLWithPath: fullPath).lastPathComponent
     }
 }
 

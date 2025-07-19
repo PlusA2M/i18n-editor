@@ -7,540 +7,302 @@
 
 import SwiftUI
 
+/// Smart refactoring view for automatic key nesting based on SvelteKit route patterns
 struct SmartRefactoringView: View {
     let project: Project
+    @StateObject private var refactoringSystem = SmartRefactoringSystem()
     @Environment(\.dismiss) private var dismiss
-
-    @State private var isRefactoring = false
-    @State private var refactoringProgress: Double = 0.0
-    @State private var refactoringStatus = "Ready to start"
-    @State private var refactoringResults: RefactoringResults?
-    @State private var selectedOptions: Set<RefactoringOption> = [.sortKeys, .removeEmpty, .formatJSON]
+    @State private var selectedSuggestions: Set<SmartRefactoringSuggestion> = []
+    @State private var showingPreview = false
+    @State private var showingResults = false
+    @State private var refactoringResult: SmartRefactoringResult?
+    @State private var hasAnalyzed = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header with title and close button
-            HStack {
-                Text("Smart Refactoring")
-                    .font(.title)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                Button("✕") {
-                    dismiss()
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header with progress
+                if refactoringSystem.isAnalyzing {
+                    RefactoringProgressHeader(
+                        progress: refactoringSystem.analysisProgress,
+                        operation: refactoringSystem.currentOperation
+                    )
                 }
-                .buttonStyle(.plain)
-                .font(.title2)
-                .foregroundColor(.secondary)
-                .help("Close")
+
+                // Main content
+                if refactoringSystem.refactoringSuggestions.isEmpty && !refactoringSystem.isAnalyzing {
+                    EmptyRefactoringState(
+                        hasAnalyzed: hasAnalyzed,
+                        onAnalyze: analyzeProject
+                    )
+                } else {
+                    SmartRefactoringSuggestionsView(
+                        suggestions: refactoringSystem.refactoringSuggestions,
+                        selectedSuggestions: $selectedSuggestions,
+                        onPreview: { showingPreview = true },
+                        onApply: applySelectedSuggestions
+                    )
+                }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
-            .padding(.bottom, 16)
+            .navigationTitle("Smart Refactoring")
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if !refactoringSystem.refactoringSuggestions.isEmpty {
+                        Button("Select All") {
+                            selectedSuggestions = Set(refactoringSystem.refactoringSuggestions)
+                        }
+                        .disabled(refactoringSystem.isAnalyzing)
 
-            Divider()
-
-            // Main content in scroll view
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Header Section
-                    HeaderSection()
-
-                    // Options Section
-                    OptionsSection(
-                        selectedOptions: $selectedOptions,
-                        isRefactoring: isRefactoring
-                    )
-
-                    // Progress Section (always present to avoid layout jumps)
-                    ProgressSection(
-                        isRefactoring: isRefactoring,
-                        progress: refactoringProgress,
-                        status: refactoringStatus
-                    )
-
-                    // Results Section
-                    if let results = refactoringResults {
-                        ResultsSection(results: results)
+                        Button("Clear Selection") {
+                            selectedSuggestions.removeAll()
+                        }
+                        .disabled(refactoringSystem.isAnalyzing || selectedSuggestions.isEmpty)
                     }
 
-                    // Action Buttons
-                    ActionButtonsSection(
-                        isRefactoring: isRefactoring,
-                        hasSelectedOptions: !selectedOptions.isEmpty,
-                        onCancel: { dismiss() },
-                        onStartRefactoring: startRefactoring
-                    )
+                    Button(hasAnalyzed && refactoringSystem.refactoringSuggestions.isEmpty ? "Re-analyze" : "Analyze") {
+                        analyzeProject()
+                    }
+                    .disabled(refactoringSystem.isAnalyzing)
+                    .buttonStyle(.borderedProminent)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
-            }
-        }
-        .frame(width: 700, height: 600)
-        .background(Color(NSColor.windowBackgroundColor))
-    }
-    
-    private func startRefactoring() {
-        isRefactoring = true
-        refactoringProgress = 0.0
-        refactoringStatus = "Initializing..."
-        refactoringResults = nil
-        
-        Task {
-            await performRefactoring()
-        }
-    }
-    
-    private func performRefactoring() async {
-        let refactorer = SmartRefactorer()
-        
-        do {
-            let results = await refactorer.refactorProject(
-                project: project,
-                options: selectedOptions,
-                progressCallback: { progress, status in
-                    DispatchQueue.main.async {
-                        self.refactoringProgress = progress
-                        self.refactoringStatus = status
+
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
                     }
                 }
+            }
+        }
+        .frame(minWidth: 900, minHeight: 700)
+        .sheet(isPresented: $showingPreview) {
+            RefactoringPreviewView(
+                suggestions: Array(selectedSuggestions),
+                onApply: applySelectedSuggestions
             )
-            
-            DispatchQueue.main.async {
-                self.refactoringResults = results
-                self.isRefactoring = false
-                self.refactoringStatus = "Completed"
+        }
+        .sheet(isPresented: $showingResults) {
+            if let result = refactoringResult {
+                RefactoringResultsView(result: result)
             }
-            
-        } catch {
-            DispatchQueue.main.async {
-                var errorMessage = "Refactoring failed: \(error.localizedDescription)"
-
-                // Provide specific guidance for permission errors
-                if error.localizedDescription.contains("permission") ||
-                   error.localizedDescription.contains("access") ||
-                   (error as NSError).domain == "SmartRefactorerError" {
-                    errorMessage += "\n\nTo fix this issue:\n1. Close this dialog\n2. Go to File > Open Project\n3. Select your project folder again to grant write permissions\n4. Try Smart Refactoring again"
-                }
-
-                self.refactoringResults = RefactoringResults(
-                    filesProcessed: 0,
-                    keysReorganized: 0,
-                    emptyKeysRemoved: 0,
-                    duplicatesMerged: 0,
-                    errors: [errorMessage]
-                )
-                self.isRefactoring = false
-                self.refactoringStatus = "Failed"
+        }
+        .onAppear {
+            if !hasAnalyzed {
+                analyzeProject()
             }
         }
     }
-}
 
-// MARK: - Section Components
-
-struct HeaderSection: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "wand.and.stars")
-                    .font(.title2)
-                    .foregroundColor(.blue)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Automatically reorganize and optimize your translation files")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-
-                    Text("Select the refactoring options you want to apply to your project.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-            }
+    private func analyzeProject() {
+        hasAnalyzed = true
+        Task {
+            await refactoringSystem.analyzeProject(project)
         }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
     }
-}
 
-struct OptionsSection: View {
-    @Binding var selectedOptions: Set<RefactoringOption>
-    let isRefactoring: Bool
+    private func applySelectedSuggestions() {
+        guard !selectedSuggestions.isEmpty else { return }
 
-    private let fileOperations: [RefactoringOption] = [.formatJSON, .sortKeys]
-    private let contentOperations: [RefactoringOption] = [.removeEmpty, .mergeDuplicates, .optimizeNesting]
+        Task {
+            let result = await refactoringSystem.applyRefactoring(Array(selectedSuggestions), project: project)
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Refactoring Options")
-                .font(.title2)
-                .fontWeight(.semibold)
+            await MainActor.run {
+                refactoringResult = result
+                showingResults = true
+                showingPreview = false
 
-            VStack(alignment: .leading, spacing: 20) {
-                OptionGroup(
-                    title: "File Operations",
-                    icon: "doc.text",
-                    options: fileOperations,
-                    selectedOptions: $selectedOptions,
-                    isDisabled: isRefactoring
-                )
+                // Clear applied suggestions from selection
+                selectedSuggestions = selectedSuggestions.subtracting(result.appliedSuggestions)
 
-                OptionGroup(
-                    title: "Content Operations",
-                    icon: "text.alignleft",
-                    options: contentOperations,
-                    selectedOptions: $selectedOptions,
-                    isDisabled: isRefactoring
-                )
-            }
-        }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-    }
-}
-
-struct OptionGroup: View {
-    let title: String
-    let icon: String
-    let options: [RefactoringOption]
-    @Binding var selectedOptions: Set<RefactoringOption>
-    let isDisabled: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundColor(.blue)
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(options, id: \.self) { option in
-                    OptionRow(
-                        option: option,
-                        isSelected: selectedOptions.contains(option),
-                        isDisabled: isDisabled
-                    ) { isSelected in
-                        if isSelected {
-                            selectedOptions.insert(option)
-                        } else {
-                            selectedOptions.remove(option)
-                        }
-                    }
+                // Remove applied suggestions from the list
+                refactoringSystem.refactoringSuggestions.removeAll { suggestion in
+                    result.appliedSuggestions.contains(suggestion)
                 }
             }
-            .padding(.leading, 24)
         }
     }
 }
 
-struct OptionRow: View {
-    let option: RefactoringOption
-    let isSelected: Bool
-    let isDisabled: Bool
-    let onToggle: (Bool) -> Void
+// MARK: - Supporting Views
 
-    var body: some View {
-        HStack(spacing: 12) {
-            Toggle("", isOn: Binding(
-                get: { isSelected },
-                set: onToggle
-            ))
-            .toggleStyle(CheckboxToggleStyle())
-            .disabled(isDisabled)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(option.title)
-                    .font(.body)
-                    .foregroundColor(isDisabled ? .secondary : .primary)
-
-                Text(option.description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if !isDisabled {
-                onToggle(!isSelected)
-            }
-        }
-    }
-}
-
-struct ProgressSection: View {
-    let isRefactoring: Bool
+struct RefactoringProgressHeader: View {
     let progress: Double
-    let status: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: isRefactoring ? "gearshape.2" : "checkmark.circle")
-                    .foregroundColor(isRefactoring ? .blue : .green)
-                    .font(.title2)
-
-                Text("Progress")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                if isRefactoring {
-                    Text("\(Int(progress * 100))%")
-                        .font(.headline)
-                        .foregroundColor(.blue)
-                }
-            }
-
-            if isRefactoring {
-                VStack(alignment: .leading, spacing: 12) {
-                    ProgressView(value: progress)
-                        .progressViewStyle(LinearProgressViewStyle(tint: .blue))
-                        .scaleEffect(y: 1.5)
-
-                    Text(status)
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                Text("Ready to start refactoring")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-        .animation(.easeInOut(duration: 0.3), value: isRefactoring)
-    }
-}
-
-struct ResultsSection: View {
-    let results: RefactoringResults
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: results.errors.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .foregroundColor(results.errors.isEmpty ? .green : .orange)
-                    .font(.title2)
-
-                Text("Results")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Spacer()
-            }
-
-            // Statistics Grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
-                StatisticCard(
-                    title: "Files Processed",
-                    value: "\(results.filesProcessed)",
-                    icon: "doc.text",
-                    color: .blue
-                )
-
-                StatisticCard(
-                    title: "Keys Reorganized",
-                    value: "\(results.keysReorganized)",
-                    icon: "arrow.up.arrow.down",
-                    color: .green
-                )
-
-                StatisticCard(
-                    title: "Empty Keys Removed",
-                    value: "\(results.emptyKeysRemoved)",
-                    icon: "trash",
-                    color: .orange
-                )
-
-                StatisticCard(
-                    title: "Duplicates Merged",
-                    value: "\(results.duplicatesMerged)",
-                    icon: "arrow.triangle.merge",
-                    color: .purple
-                )
-            }
-
-            // Errors Section
-            if !results.errors.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.red)
-                        Text("Errors")
-                            .font(.headline)
-                            .foregroundColor(.red)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(results.errors, id: \.self) { error in
-                            HStack(alignment: .top, spacing: 8) {
-                                Text("•")
-                                    .foregroundColor(.red)
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Spacer()
-                            }
-                        }
-                    }
-                    .padding(12)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-                }
-            }
-        }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
-    }
-}
-
-struct StatisticCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
+    let operation: String
 
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.title3)
+                Text("Smart Refactoring Analysis")
+                    .font(.headline)
+
                 Spacer()
-                Text(value)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(color)
+
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            ProgressView(value: progress)
+                .progressViewStyle(LinearProgressViewStyle())
+
+            HStack {
+                Text(operation)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+            }
         }
-        .padding(12)
-        .background(color.opacity(0.1))
-        .cornerRadius(8)
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor))
     }
 }
 
-struct ActionButtonsSection: View {
-    let isRefactoring: Bool
-    let hasSelectedOptions: Bool
-    let onCancel: () -> Void
-    let onStartRefactoring: () -> Void
+struct EmptyRefactoringState: View {
+    let hasAnalyzed: Bool
+    let onAnalyze: () -> Void
 
     var body: some View {
-        HStack(spacing: 16) {
-            Button("Cancel") {
-                onCancel()
+        VStack(spacing: 20) {
+            Image(systemName: hasAnalyzed ? "checkmark.circle.fill" : "wand.and.stars")
+                .font(.system(size: 60))
+                .foregroundColor(hasAnalyzed ? .green : .blue)
+
+            Text(hasAnalyzed ? "Excellent Work!" : "Smart Refactoring")
+                .font(.title)
+                .fontWeight(.semibold)
+
+            Text(hasAnalyzed ?
+                 "Your project structure is already well-organized! No refactoring suggestions needed." :
+                 "Automatically organize your i18n keys based on SvelteKit route patterns")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            if hasAnalyzed {
+                // Congratulatory content
+                VStack(alignment: .leading, spacing: 8) {
+                    CongratulationRow(
+                        icon: "checkmark.seal.fill",
+                        title: "Keys Well-Organized",
+                        description: "Your translation keys follow good patterns"
+                    )
+
+                    CongratulationRow(
+                        icon: "folder.fill.badge.checkmark",
+                        title: "Route Structure Clean",
+                        description: "No namespace improvements needed"
+                    )
+
+                    CongratulationRow(
+                        icon: "sparkles",
+                        title: "Project Optimized",
+                        description: "Your i18n setup is in great shape"
+                    )
+                }
+                .padding(.horizontal, 40)
+
+                Button("Analyze Again") {
+                    onAnalyze()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            } else {
+                // Initial state content
+                VStack(alignment: .leading, spacing: 8) {
+                    RefactoringFeatureRow(
+                        icon: "folder.badge.gearshape",
+                        title: "Route-based Nesting",
+                        description: "Organize keys by file location"
+                    )
+
+                    RefactoringFeatureRow(
+                        icon: "arrow.triangle.branch",
+                        title: "Smart Suggestions",
+                        description: "AI-powered key restructuring"
+                    )
+
+                    RefactoringFeatureRow(
+                        icon: "checkmark.circle",
+                        title: "Safe Refactoring",
+                        description: "Preview changes before applying"
+                    )
+                }
+                .padding(.horizontal, 40)
+
+                Button("Analyze Project") {
+                    onAnalyze()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .disabled(isRefactoring)
-            .buttonStyle(.bordered)
-            .controlSize(.large)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct RefactoringFeatureRow: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.blue)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
 
             Spacer()
+        }
+    }
+}
 
-            Button(isRefactoring ? "Refactoring..." : "Start Refactoring") {
-                onStartRefactoring()
+struct CongratulationRow: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.green)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            .disabled(isRefactoring || !hasSelectedOptions)
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-        }
-        .padding(.top, 8)
-    }
-}
 
-// Custom Toggle Style for better checkbox appearance
-struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .foregroundColor(configuration.isOn ? .blue : .secondary)
-                .font(.system(size: 16))
-                .onTapGesture {
-                    configuration.isOn.toggle()
-                }
-
-            configuration.label
+            Spacer()
         }
     }
 }
 
-// MARK: - Supporting Types
+// MARK: - Preview
 
-enum RefactoringOption: String, CaseIterable {
-    case sortKeys = "sort_keys"
-    case removeEmpty = "remove_empty"
-    case formatJSON = "format_json"
-    case mergeDuplicates = "merge_duplicates"
-    case optimizeNesting = "optimize_nesting"
-    
-    var title: String {
-        switch self {
-        case .sortKeys:
-            return "Sort Keys Alphabetically"
-        case .removeEmpty:
-            return "Remove Empty Translations"
-        case .formatJSON:
-            return "Format JSON Files"
-        case .mergeDuplicates:
-            return "Merge Duplicate Keys"
-        case .optimizeNesting:
-            return "Optimize Key Nesting"
-        }
+struct SmartRefactoringView_Previews: PreviewProvider {
+    static var previews: some View {
+        let context = PersistenceController.preview.container.viewContext
+        let project = Project(context: context)
+        project.name = "Test Project"
+        project.path = "/path/to/project"
+
+        return SmartRefactoringView(project: project)
     }
-    
-    var description: String {
-        switch self {
-        case .sortKeys:
-            return "Sort all translation keys in alphabetical order"
-        case .removeEmpty:
-            return "Remove keys with empty or null values"
-        case .formatJSON:
-            return "Format JSON files with consistent indentation"
-        case .mergeDuplicates:
-            return "Merge duplicate keys and resolve conflicts"
-        case .optimizeNesting:
-            return "Optimize nested key structure for better organization"
-        }
-    }
-}
-
-struct RefactoringResults {
-    let filesProcessed: Int
-    let keysReorganized: Int
-    let emptyKeysRemoved: Int
-    let duplicatesMerged: Int
-    let errors: [String]
-}
-
-#Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let project = Project(context: context)
-    project.name = "Sample Project"
-    project.path = "/path/to/project"
-    project.baseLocale = "en"
-    project.locales = ["en", "fr", "de"]
-    project.pathPattern = "./messages/{locale}.json"
-    
-    return SmartRefactoringView(project: project)
 }

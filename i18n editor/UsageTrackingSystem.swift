@@ -18,6 +18,7 @@ class UsageTrackingSystem: ObservableObject {
     private let logger = Logger(subsystem: "com.plusa.i18n-editor", category: "UsageTrackingSystem")
 
     @Published var isTracking = false
+    @Published var isScanning = false
     @Published var trackedProject: Project?
     @Published var usageStatistics: UsageStatistics?
     @Published var recentChanges: [UsageChange] = []
@@ -97,6 +98,10 @@ class UsageTrackingSystem: ObservableObject {
             return
         }
 
+        await MainActor.run {
+            isScanning = true
+        }
+
         logger.info("Starting forced full rescan with data cleanup...")
 
         // Step 1: Clean up all existing usage tracking data
@@ -112,6 +117,7 @@ class UsageTrackingSystem: ObservableObject {
         // Step 3: Recalculate statistics
         await MainActor.run {
             calculateUsageStatistics()
+            isScanning = false
         }
 
         logger.info("Force rescan completed successfully")
@@ -124,11 +130,16 @@ class UsageTrackingSystem: ObservableObject {
             return
         }
 
+        await MainActor.run {
+            isScanning = true
+        }
+
         logger.info("Cleaning up usage tracking data...")
 
         await MainActor.run {
             DataManager.shared.cleanupProjectUsageData(project)
             calculateUsageStatistics()
+            isScanning = false
         }
 
         logger.info("Usage data cleanup completed")

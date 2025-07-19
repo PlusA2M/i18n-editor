@@ -30,11 +30,23 @@ class SvelteFileScanner: ObservableObject {
             // Pattern: m.keyName(params) - function call with parameters (not preceded by alphanumeric)
             #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)"#,
 
+            // Pattern: m["keyName"]() - bracket notation function call
+            #"(?<![A-Za-z0-9])m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\(\s*\)"#,
+
+            // Pattern: m["keyName"](params) - bracket notation with parameters
+            #"(?<![A-Za-z0-9])m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\([^)]*\)"#,
+
             // Pattern: {m.keyName()} - template expression with function call
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)\s*\}"#,
 
             // Pattern: {m.keyName(params)} - template expression with parameters
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)\s*\}"#,
+
+            // Pattern: {m["keyName"]()} - template expression with bracket notation
+            #"\{\s*m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\(\s*\)\s*\}"#,
+
+            // Pattern: {m["keyName"](params)} - template expression with bracket notation and parameters
+            #"\{\s*m\[\"([a-zA-Z_][a-zA-Z0-9_.]*)\"\]\([^)]*\)\s*\}"#,
         ]
 
         return patterns.compactMap { pattern in

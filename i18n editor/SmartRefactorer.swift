@@ -7,6 +7,54 @@
 
 import Foundation
 
+// MARK: - Supporting Types
+
+enum RefactoringOption: String, CaseIterable {
+    case sortKeys = "sort_keys"
+    case removeEmpty = "remove_empty"
+    case formatJSON = "format_json"
+    case mergeDuplicates = "merge_duplicates"
+    case optimizeNesting = "optimize_nesting"
+
+    var title: String {
+        switch self {
+        case .sortKeys:
+            return "Sort Keys Alphabetically"
+        case .removeEmpty:
+            return "Remove Empty Translations"
+        case .formatJSON:
+            return "Format JSON Files"
+        case .mergeDuplicates:
+            return "Merge Duplicate Keys"
+        case .optimizeNesting:
+            return "Optimize Key Nesting"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .sortKeys:
+            return "Sort all translation keys in alphabetical order"
+        case .removeEmpty:
+            return "Remove keys with empty or null values"
+        case .formatJSON:
+            return "Format JSON files with consistent indentation"
+        case .mergeDuplicates:
+            return "Merge duplicate keys and resolve conflicts"
+        case .optimizeNesting:
+            return "Optimize nested key structure for better organization"
+        }
+    }
+}
+
+struct RefactoringResults {
+    let filesProcessed: Int
+    let keysReorganized: Int
+    let emptyKeysRemoved: Int
+    let duplicatesMerged: Int
+    let errors: [String]
+}
+
 /// Handles smart refactoring operations for translation files
 class SmartRefactorer {
     private let fileManager = FileManager.default
