@@ -231,16 +231,20 @@ class UsageTrackingDebugger: ObservableObject {
 
         // Get patterns from SvelteFileScanner (updated patterns)
         let patterns = [
+            // Pattern: m.keyName() - simple function call
             #"m\.([a-zA-Z_][a-zA-Z0-9_]*)\(\s*\)"#,
+
+            // Pattern: m.nested.keyName() - nested keys with dots
             #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)"#,
+
+            // Pattern: m.keyName(params) - function call with parameters
             #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)"#,
-            #"\$m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])"#,
+
+            // Pattern: {m.keyName()} - template expression with function call
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)\s*\}"#,
-            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\s*\}"#,
+
+            // Pattern: {m.keyName(params)} - template expression with parameters
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)\s*\}"#,
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])(?!\()"#,
-            #"['""]m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])['""]"#,
-            #"m\[['\""]([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])['\"\"]\]"#
         ]
 
         let regexPatterns = patterns.compactMap { pattern in

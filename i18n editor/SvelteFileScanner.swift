@@ -33,26 +33,11 @@ class SvelteFileScanner: ObservableObject {
             // Pattern: m.keyName(params) - function call with parameters
             #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)"#,
 
-            // Pattern: $m.keyName - reactive statement (Svelte)
-            #"\$m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])"#,
-
             // Pattern: {m.keyName()} - template expression with function call
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)\s*\}"#,
 
-            // Pattern: {m.keyName} - template expression without function call
-            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\s*\}"#,
-
             // Pattern: {m.keyName(params)} - template expression with parameters
             #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)\s*\}"#,
-
-            // Pattern: m.keyName - direct property access (no parentheses)
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])(?!\()"#,
-
-            // Pattern: "m.keyName" - quoted strings (for dynamic access)
-            #"['""]m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])['""]"#,
-
-            // Pattern: m['keyName'] or m["keyName"] - bracket notation
-            #"m\[['\""]([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])['\"\"]\]"#
         ]
 
         return patterns.compactMap { pattern in

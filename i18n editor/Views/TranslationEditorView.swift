@@ -665,7 +665,7 @@ struct TranslationTableView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Table header
-            TranslationTableHeader(locales: locales)
+            TranslationTableHeader(locales: locales, project: project)
 
             Divider()
 
@@ -957,6 +957,22 @@ struct TranslationTableView: View {
 
 struct TranslationTableHeader: View {
     let locales: [String]
+    let project: Project
+
+    private func getMissingPercentage(for locale: String) -> Double {
+        let dataManager = DataManager.shared
+        let i18nKeys = dataManager.getI18nKeys(for: project)
+        let usedKeys = i18nKeys.filter { $0.isUsedInFiles }
+
+        guard !usedKeys.isEmpty else { return 0.0 }
+
+        let missingCount = usedKeys.filter { key in
+            let translation = dataManager.getTranslation(i18nKey: key, locale: locale)
+            return translation?.value?.isEmpty ?? true
+        }.count
+
+        return Double(missingCount) / Double(usedKeys.count) * 100.0
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -969,27 +985,32 @@ struct TranslationTableHeader: View {
 
             Divider()
 
-            // File usage column header
+            // Locale column headers
+            ForEach(locales, id: \.self) { locale in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(locale.uppercased())
+                        .font(.system(.body, weight: .semibold))
+
+                    let missingPercentage = getMissingPercentage(for: locale)
+                    if missingPercentage > 0 {
+                        Text("(\(Int(missingPercentage))% missing)")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                }
+                .frame(width: 150, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+
+                Divider()
+            }
+
+            // File usage column header (last column)
             Text("Used In")
                 .font(.system(.body, weight: .semibold))
                 .frame(width: 180, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 12)
-
-            Divider()
-
-            // Locale column headers
-            ForEach(locales, id: \.self) { locale in
-                Text(locale.uppercased())
-                    .font(.system(.body, weight: .semibold))
-                    .frame(width: 150, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 12)
-
-                if locale != locales.last {
-                    Divider()
-                }
-            }
         }
         .background(Color(NSColor.controlBackgroundColor))
         .frame(height: 44)
@@ -1010,11 +1031,6 @@ struct TranslationTableRow: View {
 
             Divider()
 
-            // File usage column
-            FileUsageCell(key: key, isSelected: isSelected)
-
-            Divider()
-
             // Translation columns
             ForEach(Array(locales.enumerated()), id: \.element) { columnIndex, locale in
                 EnhancedTranslationCell(
@@ -1027,10 +1043,11 @@ struct TranslationTableRow: View {
                 )
                 .id("cell_\(rowIndex)_\(columnIndex)")
 
-                if locale != locales.last {
-                    Divider()
-                }
+                Divider()
             }
+
+            // File usage column (last column)
+            FileUsageCell(key: key, isSelected: isSelected)
         }
         .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
     }
@@ -1053,7 +1070,6 @@ struct KeyCell: View {
                     Image(systemName: "link")
                         .font(.caption)
                         .foregroundColor(.blue)
-                        .help("Used in \(key.activeFileUsages.count) location(s)")
                 }
 
                 if key.hasMissingTranslations {
@@ -1112,9 +1128,15 @@ struct FileUsageCell: View {
             } else {
                 ForEach(Array(fileUsages.prefix(3).enumerated()), id: \.element.id) { index, usage in
                     HStack(spacing: 4) {
-                        Image(systemName: "doc.text")
-                            .font(.caption2)
-                            .foregroundColor(.blue)
+                        Button(action: {
+                            openFileDirectory(usage.filePath ?? "")
+                        }) {
+                            Image(systemName: "doc.text")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Open file directory")
 
                         Text(getRelativePath(usage.filePath ?? ""))
                             .font(.caption)
@@ -1139,6 +1161,12 @@ struct FileUsageCell: View {
         .frame(width: 180, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+
+    private func openFileDirectory(_ filePath: String) {
+        let fileURL = URL(fileURLWithPath: filePath)
+        let directoryURL = fileURL.deletingLastPathComponent()
+        NSWorkspace.shared.open(directoryURL)
     }
 }
 

@@ -277,11 +277,28 @@ class UsageTrackingSystem: ObservableObject {
             let keysWithoutUsage = totalKeys - keysWithUsage
             let averageUsagePerKey = totalKeys > 0 ? Double(totalUsages) / Double(totalKeys) : 0.0
 
-            // Translation completion statistics
+            // Translation completion statistics - calculate based on used keys only
+            let usedKeys = i18nKeys.filter { $0.isUsedInFiles }
+            let projectLocales = project.allLocales
+
+            // Calculate total expected translations for used keys across all locales
+            let totalExpectedTranslations = usedKeys.count * projectLocales.count
+
+            // Count completed translations for used keys only
+            var completedTranslationsForUsedKeys = 0
+            for key in usedKeys {
+                for locale in projectLocales {
+                    if let translation = allTranslations.first(where: { $0.i18nKey == key && $0.locale == locale }),
+                       !(translation.value?.isEmpty ?? true) {
+                        completedTranslationsForUsedKeys += 1
+                    }
+                }
+            }
+
             let totalTranslations = allTranslations.count
             let completedTranslations = allTranslations.filter { !($0.value?.isEmpty ?? true) }.count
             let draftTranslations = allTranslations.filter { $0.isDraft }.count
-            let translationCompletionRate = totalTranslations > 0 ? Double(completedTranslations) / Double(totalTranslations) : 0.0
+            let translationCompletionRate = totalExpectedTranslations > 0 ? Double(completedTranslationsForUsedKeys) / Double(totalExpectedTranslations) : 0.0
 
             // Most and least used keys
             let sortedByUsage = keyUsageStats.sorted { $0.usageCount > $1.usageCount }
