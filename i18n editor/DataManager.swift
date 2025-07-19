@@ -64,6 +64,68 @@ class DataManager: ObservableObject {
         saveContext()
     }
 
+    /// Clean up all usage tracking data for a project (for force rescan)
+    func cleanupProjectUsageData(_ project: Project) {
+        // Assert we're on the main thread
+        assert(Thread.isMainThread, "cleanupProjectUsageData must be called from main thread")
+
+        print("🧹 Cleaning up usage tracking data for project: \(project.name ?? "Unknown")")
+
+        // Delete all i18n keys and their related data
+        let keyRequest: NSFetchRequest<I18nKey> = I18nKey.fetchRequest()
+        keyRequest.predicate = NSPredicate(format: "project == %@", project)
+
+        do {
+            let keys = try viewContext.fetch(keyRequest)
+            print("  - Deleting \(keys.count) i18n keys")
+            for key in keys {
+                viewContext.delete(key)
+            }
+        } catch {
+            print("Error fetching i18n keys for cleanup: \(error)")
+        }
+
+        // Delete all file usages
+        let usageRequest: NSFetchRequest<FileUsage> = FileUsage.fetchRequest()
+        usageRequest.predicate = NSPredicate(format: "project == %@", project)
+
+        do {
+            let usages = try viewContext.fetch(usageRequest)
+            print("  - Deleting \(usages.count) file usages")
+            for usage in usages {
+                viewContext.delete(usage)
+            }
+        } catch {
+            print("Error fetching file usages for cleanup: \(error)")
+        }
+
+        // Delete all translations
+        let translationRequest: NSFetchRequest<Translation> = Translation.fetchRequest()
+        translationRequest.predicate = NSPredicate(format: "project == %@", project)
+
+        do {
+            let translations = try viewContext.fetch(translationRequest)
+            print("  - Deleting \(translations.count) translations")
+            for translation in translations {
+                viewContext.delete(translation)
+            }
+        } catch {
+            print("Error fetching translations for cleanup: \(error)")
+        }
+
+        // Save all deletions
+        saveContext()
+        print("✅ Cleanup completed for project: \(project.name ?? "Unknown")")
+
+        // Notify UI to refresh
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("UsageDataCleaned"),
+                object: project
+            )
+        }
+    }
+
     // MARK: - I18n Key Management
 
     /// Create or update an i18n key (must be called from main thread)
@@ -123,7 +185,26 @@ class DataManager: ObservableObject {
         request.sortDescriptors = [NSSortDescriptor(keyPath: \I18nKey.key, ascending: true)]
 
         do {
-            return try viewContext.fetch(request)
+            let results = try viewContext.fetch(request)
+
+            // Debug: Check for duplicate keys at database level
+            let keyStrings = results.compactMap { $0.key }
+            let uniqueKeyStrings = Set(keyStrings)
+            if keyStrings.count != uniqueKeyStrings.count {
+                print("🔍 DATABASE: Found \(keyStrings.count - uniqueKeyStrings.count) duplicate keys in Core Data")
+
+                // Find and log duplicates
+                var keyCount: [String: Int] = [:]
+                for keyString in keyStrings {
+                    keyCount[keyString, default: 0] += 1
+                }
+                let duplicates = keyCount.filter { $0.value > 1 }
+                for (key, count) in duplicates {
+                    print("  - '\(key)': \(count) instances")
+                }
+            }
+
+            return results
         } catch {
             print("Error fetching i18n keys: \(error)")
             return []

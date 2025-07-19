@@ -526,15 +526,24 @@ struct StatisticsSection: View {
 
                 Spacer()
 
-                // Status indicator
-                HStack(spacing: 4) {
+                // Status indicator with refresh button
+                HStack(spacing: 8) {
                     Circle()
                         .fill(usageTracker.isTracking ? Color.green : Color.gray)
                         .frame(width: 8, height: 8)
 
-                    Text(usageTracker.isTracking ? "Active" : "Inactive")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Button(action: {
+                        Task {
+                            await usageTracker.forceFullRescan()
+                        }
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Force rescan project")
+                    .disabled(!usageTracker.isTracking)
                 }
             }
 
@@ -674,7 +683,7 @@ struct TranslationTableView: View {
                 GeometryReader { geometry in
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(filteredAndSortedKeys.enumerated()), id: \.element.id) { rowIndex, key in
+                            ForEach(Array(filteredAndSortedKeys.enumerated()), id: \.element.objectID) { rowIndex, key in
                                 TranslationTableRow(
                                     key: key,
                                     locales: locales,
@@ -682,7 +691,6 @@ struct TranslationTableView: View {
                                     rowIndex: rowIndex,
                                     editingStateManager: editingStateManager
                                 )
-                                .id("row_\(rowIndex)")
                                 .onTapGesture {
                                     if !editingStateManager.isInEditMode {
                                         toggleSelection(for: key)
@@ -746,6 +754,16 @@ struct TranslationTableView: View {
                 // Force complete reload of table data including column updates
                 DispatchQueue.main.async {
                     loadData()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UsageDataCleaned"))) { notification in
+            if let notificationProject = notification.object as? Project,
+               notificationProject.objectID == project.objectID {
+                // Reload data after usage tracking cleanup
+                DispatchQueue.main.async {
+                    loadData()
+                    refreshTrigger = UUID()
                 }
             }
         }
@@ -941,8 +959,28 @@ struct TranslationTableView: View {
     }
 
     private func loadData() {
-        i18nKeys = DataManager.shared.getI18nKeys(for: project)
+        let fetchedKeys = DataManager.shared.getI18nKeys(for: project)
+
+        // Debug: Check for duplicates
+        let keyStrings = fetchedKeys.compactMap { $0.key }
+        let uniqueKeyStrings = Set(keyStrings)
+        if keyStrings.count != uniqueKeyStrings.count {
+            print("⚠️ WARNING: Found duplicate keys in database!")
+            print("Total keys: \(keyStrings.count), Unique keys: \(uniqueKeyStrings.count)")
+
+            // Find duplicates
+            var keyCount: [String: Int] = [:]
+            for keyString in keyStrings {
+                keyCount[keyString, default: 0] += 1
+            }
+            let duplicates = keyCount.filter { $0.value > 1 }
+            print("Duplicate keys: \(duplicates)")
+        }
+
+        i18nKeys = fetchedKeys
         locales = project.allLocales
+
+        print("Loaded \(i18nKeys.count) keys for project: \(project.name ?? "Unknown")")
     }
 
     private func toggleSelection(for key: I18nKey) {
@@ -1063,14 +1101,11 @@ struct KeyCell: View {
                 Text(key.key ?? "")
                     .font(.system(.body, design: .monospaced))
                     .foregroundColor(isSelected ? .primary : .primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(key.key ?? "") // Show full key on hover
 
                 Spacer()
-
-                if key.isUsedInFiles {
-                    Image(systemName: "link")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                }
 
                 if key.hasMissingTranslations {
                     Image(systemName: "exclamationmark.triangle")
@@ -1084,6 +1119,9 @@ struct KeyCell: View {
                 Text(namespace)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(namespace) // Show full namespace on hover
             }
         }
         .frame(width: 200, alignment: .leading)
@@ -1143,6 +1181,7 @@ struct FileUsageCell: View {
                             .foregroundColor(.primary)
                             .lineLimit(1)
                             .truncationMode(.middle)
+                            .help(usage.filePath ?? "") // Show full path on hover
 
                         Text(":\(usage.lineNumber)")
                             .font(.caption)
@@ -1155,6 +1194,7 @@ struct FileUsageCell: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                         .italic()
+                        .help(buildAdditionalFilesTooltip())
                 }
             }
         }
@@ -1167,6 +1207,14 @@ struct FileUsageCell: View {
         let fileURL = URL(fileURLWithPath: filePath)
         let directoryURL = fileURL.deletingLastPathComponent()
         NSWorkspace.shared.open(directoryURL)
+    }
+
+    private func buildAdditionalFilesTooltip() -> String {
+        let additionalUsages = Array(fileUsages.dropFirst(3))
+        let tooltipLines = additionalUsages.map { usage in
+            "\(getRelativePath(usage.filePath ?? "")):\(usage.lineNumber)"
+        }
+        return "Additional files:\n" + tooltipLines.joined(separator: "\n")
     }
 }
 

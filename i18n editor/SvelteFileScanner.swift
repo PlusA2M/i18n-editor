@@ -24,20 +24,17 @@ class SvelteFileScanner: ObservableObject {
     // Regex patterns for detecting i18n usage
     private let i18nPatterns: [NSRegularExpression] = {
         let patterns = [
-            // Pattern: m.keyName() - simple function call
-            #"m\.([a-zA-Z_][a-zA-Z0-9_]*)\(\s*\)"#,
+            // Pattern: m.keyName() - simple function call (not preceded by alphanumeric)
+            #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)"#,
 
-            // Pattern: m.nested.keyName() - nested keys with dots
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)"#,
-
-            // Pattern: m.keyName(params) - function call with parameters
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)"#,
+            // Pattern: m.keyName(params) - function call with parameters (not preceded by alphanumeric)
+            #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)"#,
 
             // Pattern: {m.keyName()} - template expression with function call
-            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)\s*\}"#,
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)\s*\}"#,
 
             // Pattern: {m.keyName(params)} - template expression with parameters
-            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)\s*\}"#,
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)\s*\}"#,
         ]
 
         return patterns.compactMap { pattern in

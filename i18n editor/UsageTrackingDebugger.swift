@@ -229,22 +229,19 @@ class UsageTrackingDebugger: ObservableObject {
             "// m.commented()"
         ]
 
-        // Get patterns from SvelteFileScanner (updated patterns)
+        // Get patterns from SvelteFileScanner (updated patterns with negative lookbehind)
         let patterns = [
-            // Pattern: m.keyName() - simple function call
-            #"m\.([a-zA-Z_][a-zA-Z0-9_]*)\(\s*\)"#,
+            // Pattern: m.keyName() - simple function call (not preceded by alphanumeric)
+            #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)"#,
 
-            // Pattern: m.nested.keyName() - nested keys with dots
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)"#,
-
-            // Pattern: m.keyName(params) - function call with parameters
-            #"m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)"#,
+            // Pattern: m.keyName(params) - function call with parameters (not preceded by alphanumeric)
+            #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)"#,
 
             // Pattern: {m.keyName()} - template expression with function call
-            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\(\s*\)\s*\}"#,
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)\s*\}"#,
 
             // Pattern: {m.keyName(params)} - template expression with parameters
-            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*[a-zA-Z0-9_])\([^)]*\)\s*\}"#,
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)\s*\}"#,
         ]
 
         let regexPatterns = patterns.compactMap { pattern in
@@ -499,6 +496,80 @@ class UsageTrackingDebugger: ObservableObject {
         await MainActor.run {
             self.debugLog.append(entry)
         }
+    }
+
+    /// Test negative lookbehind patterns
+    func testNegativeLookbehind() async {
+        await logInfo("🧪 Testing negative lookbehind patterns...")
+
+        let testCases = [
+            // Should match (valid cases)
+            ("m.welcome()", true, "welcome"),
+            ("const result = m.hello()", true, "hello"),
+            (" m.user.name()", true, "user.name"),
+            ("{m.message()}", true, "message"),
+            ("return m.error.notFound()", true, "error.notFound"),
+            ("m.nested.deep.key()", true, "nested.deep.key"),
+
+            // Should NOT match (invalid cases)
+            ("currentItem.welcome()", false, nil),
+            ("user.m.hello()", false, nil),
+            ("someObject.m.message()", false, nil),
+            ("item.m.error()", false, nil),
+            ("data.m.key()", false, nil),
+            ("this.m.value()", false, nil),
+        ]
+
+        // Get patterns (same as SvelteFileScanner)
+        let patterns = [
+            #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)"#,
+            #"(?<![A-Za-z0-9])m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)"#,
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\(\s*\)\s*\}"#,
+            #"\{\s*m\.([a-zA-Z_][a-zA-Z0-9_.]*)\([^)]*\)\s*\}"#,
+        ]
+
+        let regexPatterns = patterns.compactMap { pattern in
+            do {
+                return try NSRegularExpression(pattern: pattern, options: [])
+            } catch {
+                print("Failed to compile pattern: \(pattern) - \(error)")
+                return nil
+            }
+        }
+
+        var passedTests = 0
+        var failedTests = 0
+
+        for (testString, shouldMatch, expectedKey) in testCases {
+            var foundMatch = false
+            var extractedKey: String?
+
+            for pattern in regexPatterns {
+                let nsString = testString as NSString
+                let matches = pattern.matches(in: testString, options: [], range: NSRange(location: 0, length: nsString.length))
+
+                if !matches.isEmpty {
+                    foundMatch = true
+                    let match = matches[0]
+                    if match.numberOfRanges > 1 {
+                        extractedKey = nsString.substring(with: match.range(at: 1))
+                    }
+                    break
+                }
+            }
+
+            let testPassed = (foundMatch == shouldMatch) && (extractedKey == expectedKey)
+
+            if testPassed {
+                passedTests += 1
+                await logInfo("✅ '\(testString)' -> \(foundMatch ? "matched: '\(extractedKey ?? "")'" : "no match")")
+            } else {
+                failedTests += 1
+                await logError("❌ '\(testString)' -> Expected: \(shouldMatch ? "match '\(expectedKey ?? "")'" : "no match"), Got: \(foundMatch ? "matched: '\(extractedKey ?? "")'" : "no match")")
+            }
+        }
+
+        await logInfo("📊 Negative lookbehind test results: \(passedTests) passed, \(failedTests) failed")
     }
 }
 

@@ -97,13 +97,41 @@ class UsageTrackingSystem: ObservableObject {
             return
         }
 
-        logger.info("Starting forced full rescan...")
+        logger.info("Starting forced full rescan with data cleanup...")
+
+        // Step 1: Clean up all existing usage tracking data
+        await MainActor.run {
+            DataManager.shared.cleanupProjectUsageData(project)
+        }
+
+        // Step 2: Perform fresh extraction
+        logger.info("Performing fresh extraction after cleanup...")
         let result = await keyExtractor.extractKeysFromProject(project)
         logger.info("Full rescan completed: \(result.totalKeysFound) keys found")
 
+        // Step 3: Recalculate statistics
         await MainActor.run {
             calculateUsageStatistics()
         }
+
+        logger.info("Force rescan completed successfully")
+    }
+
+    /// Clean up all usage tracking data for the current project
+    func cleanupUsageData() async {
+        guard let project = trackedProject else {
+            logger.warning("Cannot cleanup: no tracked project")
+            return
+        }
+
+        logger.info("Cleaning up usage tracking data...")
+
+        await MainActor.run {
+            DataManager.shared.cleanupProjectUsageData(project)
+            calculateUsageStatistics()
+        }
+
+        logger.info("Usage data cleanup completed")
     }
 
     // MARK: - File System Event Handling

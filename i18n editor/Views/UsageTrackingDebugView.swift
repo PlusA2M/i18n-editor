@@ -41,13 +41,29 @@ struct UsageTrackingDebugView: View {
                     }
                     .disabled(debugger.isDebugging)
 
+                    Button("Test Patterns") {
+                        Task {
+                            await debugger.testNegativeLookbehind()
+                        }
+                    }
+                    .disabled(debugger.isDebugging)
+                    .help("Test negative lookbehind regex patterns")
+
                     Button("Force Rescan") {
                         Task {
                             await usageTracker.forceFullRescan()
                         }
                     }
                     .disabled(debugger.isDebugging)
-                    .help("Force a full rescan of the project")
+                    .help("Clean up all data and perform a fresh scan of the project")
+
+                    Button("Clean Up Data") {
+                        Task {
+                            await usageTracker.cleanupUsageData()
+                        }
+                    }
+                    .disabled(debugger.isDebugging)
+                    .help("Remove all usage tracking data without rescanning")
 
                     Spacer()
 
