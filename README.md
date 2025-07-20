@@ -1,4 +1,8 @@
+<div align="center">
+
 # 🌍 i18n Editor for macOS
+
+<img src="assets/icon.png" alt="i18n Editor Icon" width="128" height="128">
 
 *Transform your translation workflow today - because life's too short for manual JSON editing.*
 
@@ -6,10 +10,26 @@
 
 Transform your Paraglide JS workflow with an intuitive, native editor that makes managing i18n JSON files a breeze. Optimized for SvelteKit projects using Paraglide JS from inlang.
 
+</div>
+
 ![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-FA7343?style=for-the-badge&logo=swift&logoColor=white)
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-0066CC?style=for-the-badge&logo=swift&logoColor=white)
 ![Paraglide JS](https://img.shields.io/badge/Paraglide_JS-00D4AA?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K&logoColor=white)
+
+<img src="assets/cover.png" alt="i18n Editor Cover" width="100%">
+
+## 📸 Screenshots
+
+<div align="center">
+
+<img src="assets/screenshots-1.png" alt="Translation Table View" width="32%">
+<img src="assets/screenshots-2.png" alt="Smart Refactoring" width="32%">
+<img src="assets/screenshots-3.png" alt="Project Settings" width="32%">
+
+*Translation Table • Smart Refactoring • Project Management*
+
+</div>
 
 ## ✨ Why i18n Editor?
 

@@ -1,0 +1,46 @@
+{
+	"$schema": "https://inlang.com/schema/marketplace-manifest",
+	"id": "app.inlang.i18nEditor",
+	"icon": "./assets/icon.png",
+	"gallery": [
+		"./assets/cover.png",
+		"./assets/screenshots-1.png",
+		"./assets/screenshots-2.png",
+		"./assets/screenshots-3.png"
+	],
+	"displayName": {
+		"en": "i18n Editor for macOS - Native Paraglide JS Translation Manager"
+	},
+	"description": {
+		"en": "A beautiful, native macOS app for effortless Paraglide JS internationalization management. Transform your translation workflow with intuitive editing, smart refactoring, and real-time validation."
+	},
+	"pages": {
+		"Overview": {
+			"/": "./README.md"
+		}
+	},
+	"keywords": [
+		"i18n",
+		"editor",
+		"macos",
+		"native",
+		"paraglide",
+		"sveltekit",
+		"localization",
+		"translation",
+		"l10n",
+		"inlang",
+		"json",
+		"smart-refactoring",
+		"swiftui",
+		"workflow",
+		"spreadsheet",
+		"validation"
+	],
+	"recommends": [],
+	"publisherName": "PlusA2M",
+	"publisherIcon": "https://github.com/PlusA2M.png",
+	"website": "https://github.com/PlusA2M/i18n-editor",
+	"license": "MIT",
+	"pricing": "Free"
+}
